@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { APIError } from "@/utils/APIError";
-import catchAsync from "@/handlers/async.handler";
 import envVars from "@/config/envVars";
 import userService from "@/services/user.service";
 import { Admin, User } from "@/@types/schema";
@@ -16,8 +15,7 @@ declare global {
     }
 }
 
-export const authenticateUser = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
         const authHeader = req.headers.authorization;
 
         // Check for Bearer token
@@ -88,5 +86,4 @@ export const authenticateUser = catchAsync(
                 "An unexpected error occurred during user authentication.",
             );
         }
-    },
-);
+    };

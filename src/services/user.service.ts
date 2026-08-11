@@ -48,7 +48,7 @@ class UserService {
             if (error instanceof z.ZodError) {
                 throw new APIError(
                     400,
-                    error.errors.map((e) => e.message).join(", "),
+                    error.issues.map((issue) => issue.message).join(", "),
                 );
             }
             logger.error("[USER_SERVICE] Error creating user:", error);

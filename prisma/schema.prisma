@@ -5,24 +5,27 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Admin {
-  id   String @id  @default(uuid())
-  role AdminRole @default(SUB)
-  name String
-  email String @unique
+  id    String    @id @default(uuid())
+  role  AdminRole @default(SUB)
+  name  String
+  email String    @unique
 }
 
 model User {
-  id       String @id @default(uuid())
-  name     String
-  email    String @unique
-  password String
+  id          String  @id @default(uuid())
+  phoneNumber String  @unique
+  name        String?
+  email       String? @unique
+  avatarUrl   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum AdminRole {
-    SUPER
-    SUB
+  SUPER
+  SUB
 }

@@ -67,3 +67,5 @@ Please make sure your database server is running at `localhost:5432`.
 2025-08-27 11:49:23 [31merror[39m: [REDIS] Failed to connect to Redis. connect ECONNREFUSED 127.0.0.1:6379
 2025-08-27 11:49:24 [31merror[39m: [REDIS] Failed to connect to Redis. connect ECONNREFUSED 127.0.0.1:6379
 2025-08-27 11:49:25 [31merror[39m: [REDIS] Failed to connect to Redis. connect ECONNREFUSED 127.0.0.1:6379
+2026-08-12 00:52:34 [31merror[39m: [EMAIL] Service : Error: Invalid login: 535 5.7.0 Invalid credentials
+2026-08-12 01:14:53 [31merror[39m: [EMAIL] Service : Error: Invalid login: 535 5.7.0 Invalid credentials

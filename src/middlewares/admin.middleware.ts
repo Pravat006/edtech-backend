@@ -1,14 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { APIError } from "@/utils/APIError";
-import catchAsync from "@/handlers/async.handler";
 import envVars from "@/config/envVars";
 import adminService from "@/services/admin.service";
 import { Admin } from "@/@types/schema";
 import { logger } from "@/config/logger";
 
-export const authenticateAdmin = catchAsync(
-    async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateAdmin = async (req: Request, res: Response, next: NextFunction) => {
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -64,10 +62,9 @@ export const authenticateAdmin = catchAsync(
                 "An unexpected error occurred during admin authentication."
             );
         }
-    }
-);
+    };
 
-export const authorizeSuperAdmin = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+export const authorizeSuperAdmin = async (req: Request, res: Response, next: NextFunction) => {
     const admin = req.admin as Admin;
     if (admin.role === "SUPER") {
         logger.info(`[ADMIN_MIDDLEWARE] Super admin authorization granted for admin ID: ${admin.id}`);
@@ -76,4 +73,4 @@ export const authorizeSuperAdmin = catchAsync(async (req: Request, res: Response
         logger.warn(`[ADMIN_MIDDLEWARE] Super admin authorization denied for admin ID: ${admin.id}`);
         throw new APIError(403, "You are not authorized.Only super admin can perform this action.");
     }
-});
+};

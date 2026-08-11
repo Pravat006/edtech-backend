@@ -1,14 +1,14 @@
-import { v1 } from "@/controllers";
+import { userAuth } from "@/modules/auth/auth.controller";
 import { Router } from "express";
 
 const router = Router();
 
-router.post("/login", v1.auth.user.login);
-router.post("/register/verify", v1.auth.user.verifyRegistration);
-router.post("/register", v1.auth.user.initRegister);
-router.post("/otp", v1.auth.user.resendOtpToMail);
-router.post("/password/forgot", v1.auth.user.forgotPassword);
-router.post("/password/reset", v1.auth.user.resetPassword);
-router.post("/token/refresh", v1.auth.user.refreshTokens);
+router.post("/login", userAuth.login);
+router.post("/register/verify", userAuth.verifyRegistration);
+router.post("/register", userAuth.initRegister);
+router.post("/otp", userAuth.resendOtpToMail);
+router.post("/password/forgot", userAuth.forgotPassword);
+router.post("/password/reset", userAuth.resetPassword);
+router.post("/token/refresh", userAuth.refreshTokens);
 
 export default router;

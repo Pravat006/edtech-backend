@@ -5,29 +5,62 @@ x-logging: &default-logging
         max-size: "10m"
 
 services:
-    server:
-        build:
-            context: .
+    postgres:
+        image: postgres:16-alpine
+        restart: unless-stopped
         environment:
-            NODE_ENV: production
-            REDIS_HOST: redis
-            REDIS_PORT: 6379
+            POSTGRES_USER: ${POSTGRES_USER:-edtech}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edtech_secret}
+            POSTGRES_DB: ${POSTGRES_DB:-edtech_db}
         ports:
-            - "127.0.0.1:3000:3000"
+            - "127.0.0.1:5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
         logging: *default-logging
-        depends_on:
-            - redis
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edtech} -d ${POSTGRES_DB:-edtech_db}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
     redis:
-        image: redis:latest
+        image: redis:7-alpine
+        restart: unless-stopped
         ports:
             - "127.0.0.1:6379:6379"
         volumes:
             - redis_data:/data
         logging: *default-logging
         command: redis-server --appendonly yes
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    server:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            NODE_ENV: production
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+            DATABASE_URL: postgresql://${POSTGRES_USER:-edtech}:${POSTGRES_PASSWORD:-edtech_secret}@postgres:5432/${POSTGRES_DB:-edtech_db}
+        ports:
+            - "127.0.0.1:3000:3000"
+        logging: *default-logging
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
 
 volumes:
+    postgres_data:
     redis_data:
 
 networks:

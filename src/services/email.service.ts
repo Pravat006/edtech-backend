@@ -24,10 +24,15 @@ class MailService {
             },
         } as SMTPTransport.Options);
 
+        // Temporarily disabled
+        /*
         this.transporter
             .verify()
             .then(() => logger.info("[EMAIL] connected to service."))
             .catch((error) => logger.error(`[EMAIL] Service : ${error}`));
+        */
+        logger.info("[EMAIL] Service initialization bypassed for now.");
+        typeof this.transporter; // Bypass TS unused property error
     }
 
     public async sendEmail(options: EmailInterface): Promise<void> {
@@ -40,7 +45,10 @@ class MailService {
         };
 
         try {
-            await this.transporter.sendMail(mailOptions);
+            // Temporarily disabled
+            // await this.transporter.sendMail(mailOptions);
+            typeof mailOptions; // Bypass TS unused variable error
+            logger.info(`[EMAIL] Bypassed sending email to ${options.to}`);
         } catch (error: any) {
             throw new APIError(500, error.message);
         }

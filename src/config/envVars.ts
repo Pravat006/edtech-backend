@@ -8,104 +8,34 @@ dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 // Define the environment configuration schema
 const EnvConfigSchema = z.object({
-    PORT: z.coerce
-        .number({
-            required_error: "PORT environment variable is required",
-            invalid_type_error: "PORT must be a valid number",
-        })
-        .int()
-        .positive()
-        .default(3000),
+    PORT: z.coerce.number().int().positive().default(3000),
 
-    NODE_ENV: z
-        .enum(["development", "production", "test"], {
-            required_error: "NODE_ENV environment variable is required",
-            invalid_type_error:
-                "NODE_ENV must be one of: development, production, test",
-        })
-        .default("development"),
+    NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
     // Database configuration
-    DATABASE_URL: z
-        .string({
-            required_error: "DATABASE_URL environment variable is required",
-            invalid_type_error: "DATABASE_URL must be a string",
-        })
-        .url("DATABASE_URL must be a valid URL"),
-    // GOOGLE_CLIENT_SECRET: z
-    // 	.string({
-    // 		required_error: "GOOGLE_CLIENT_SECRET environment variable is required",
-    // 		invalid_type_error: "GOOGLE_CLIENT_SECRET must be a string",
-    // 	})
-    // 	.optional(),
-    // GOOGLE_CLIENT_ID: z
-    // 	.string({
-    // 		required_error: "GOOGLE_CLIENT_ID environment variable is required",
-    // 		invalid_type_error: "GOOGLE_CLIENT_ID must be a string",
-    // 	})
-    // 	.optional(),
+    DATABASE_URL: z.string().trim().min(1).url(),
+    // GOOGLE_CLIENT_SECRET: z.string().trim().min(1).optional(),
+    // GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
 
     // JWT configuration
-    JWT_SECRET: z
-        .string({
-            required_error: "JWT_SECRET environment variable is required",
-            invalid_type_error: "JWT_SECRET must be a string",
-        })
-        .min(8, "JWT_SECRET must be at least 8 characters long"),
+    JWT_SECRET: z.string().trim().min(8, "JWT_SECRET must be at least 8 characters long"),
     // Session configuration for passport
     SESSION_SECRET: z
-        .string({
-            required_error: "SESSION_SECRET environment variable is required",
-            invalid_type_error: "SESSION_SECRET must be a string",
-        })
+        .string()
+        .trim()
         .min(8, "SESSION_SECRET must be at least 8 characters long")
         .optional(),
 
     // Security
-    REDIS_HOST: z
-        .string({
-            required_error: "REDIS_HOST environment variable is required",
-            invalid_type_error: "REDIS_HOST must be a string",
-        })
-        .default("localhost"),
-    REDIS_PORT: z.coerce
-        .number({
-            required_error: "REDIS_PORT environment variable is required",
-            invalid_type_error: "REDIS_PORT must be a valid number",
-        })
-        .int()
-        .positive()
-        .default(4567),
-    REDIS_DB: z.coerce
-        .number({
-            required_error: "REDIS_DB environment variable is required",
-            invalid_type_error: "REDIS_DB must be a valid number",
-        })
-        .int()
-        .min(0)
-        .default(0),
+    REDIS_HOST: z.string().trim().min(1).default("localhost"),
+    REDIS_PORT: z.coerce.number().int().positive().default(4567),
+    REDIS_DB: z.coerce.number().int().min(0).default(0),
 
     // SMTP Email configuration
-    SMTP_HOST: z.string({
-        required_error: "SMTP_HOST environment variable is required",
-        invalid_type_error: "SMTP_HOST must be a string",
-    }),
-    SMTP_PORT: z.coerce
-        .number({
-            required_error: "SMTP_PORT environment variable is required",
-            invalid_type_error: "SMTP_PORT must be a valid number",
-        })
-        .int()
-        .positive()
-        .default(587),
-    SMTP_USER: z.string({
-        required_error: "SMTP_USER environment variable is required",
-        invalid_type_error: "SMTP_USER must be a string",
-    }),
-    SMTP_PASSWORD: z.string({
-        required_error: "SMTP_PASSWORD environment variable is required",
-        invalid_type_error: "SMTP_PASSWORD must be a string",
-    }),
+    SMTP_HOST: z.string().trim().min(1),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_USER: z.string().trim().min(1),
+    SMTP_PASSWORD: z.string().trim().min(1),
 });
 
 // Define the config type using Zod inference
@@ -139,10 +69,10 @@ try {
     if (error instanceof z.ZodError) {
         logger.error(
             "Environment configuration validation failed:",
-            error.errors,
+            error.issues,
         );
-        error.errors.forEach((err) => {
-            logger.error(`- ${err.path.join(".")}: ${err.message}`);
+        error.issues.forEach((issue) => {
+            logger.error(`- ${issue.path.join(".")}: ${issue.message}`);
         });
     } else {
         logger.error(

@@ -15,7 +15,15 @@ app.use(morgan("dev"));
 app.use(helmet());
 app.use(rateLimiter);
 
-app.get("/health", (_req, res) => {
+app.get("/", (_req: express.Request, res: express.Response) => {
+    res.status(200).json({
+        message: "Welcome to the  Platform API",
+        docs: "Endpoints are available under /v1",
+    });
+    return;
+});
+
+app.get("/health", (_req: express.Request, res: express.Response) => {
     res.status(200).json({
         status: "ok",
         message: "Server is running",

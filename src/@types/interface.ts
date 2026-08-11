@@ -58,32 +58,19 @@ export const RefreshTokenSchema = z.object({
 // Query Schema for common query parameters
 export const QuerySchema = z.object({
     // Pagination
-    page: z
-        .string()
-        .transform((val) => parseInt(val, 10))
-        .pipe(z.number().int().positive().default(1))
-        .optional(),
-    limit: z
-        .string()
-        .transform((val) => parseInt(val, 10))
-        .pipe(z.number().int().positive().max(100).default(10))
-        .optional(),
+    page: z.coerce.number().int().positive().default(1).optional(),
+    limit: z.coerce.number().int().positive().max(100).default(10).optional(),
 
     // Search and filtering
     search: z.string().optional(),
     status: z.string().optional(),
-    rating: z
-        .string()
-        .transform((val) => parseInt(val, 10))
-        .pipe(z.number().int().min(1).max(5))
-        .optional(),
+    rating: z.coerce.number().int().min(1).max(5).optional(),
 
     // Relations
-    includeRelations: z
-        .string()
-        .transform((val) => val === "true")
-        .default("false")
-        .optional(),
+    includeRelations: z.preprocess(
+        (value) => (typeof value === "string" ? value === "true" : value),
+        z.boolean().default(false),
+    ).optional(),
 
     // Sorting
     sortBy: z.string().optional(),
@@ -94,16 +81,8 @@ export const QuerySchema = z.object({
     endDate: z.string().datetime().optional(),
 
     // Category and other filters
-    minPrice: z
-        .string()
-        .transform((val) => parseFloat(val))
-        .pipe(z.number().positive())
-        .optional(),
-    maxPrice: z
-        .string()
-        .transform((val) => parseFloat(val))
-        .pipe(z.number().positive())
-        .optional(),
+    minPrice: z.coerce.number().positive().optional(),
+    maxPrice: z.coerce.number().positive().optional(),
 });
 export const VerifyLoginSchema = VerifyRegistrationSchema;
 export const AdminLoginSchema = LoginSchema.omit({ password: true });
