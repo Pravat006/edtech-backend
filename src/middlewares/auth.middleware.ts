@@ -9,7 +9,7 @@ import { logger } from "@/config/logger";
 declare global {
     namespace Express {
         interface Request {
-            user?: Omit<User, "password">;
+            user?: User;
             admin?: Admin;
         }
     }
@@ -51,11 +51,8 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
                 );
             }
 
-            // Exclude password from the user object attached to the request
-            const { password, ...userWithoutPassword } = user;
-
             // Attach user to the request object
-            req.user = userWithoutPassword;
+            req.user = user;
 
             logger.info(
                 `[AUTH_MIDDLEWARE] User authenticated successfully: ${user.id}`,
