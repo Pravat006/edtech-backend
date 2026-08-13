@@ -1,106 +1,72 @@
-import { logger } from "@/config/logger";
-import Redis from "ioredis";
+import { logger } from '@/config/logger';
+import Redis from 'ioredis';
+import envVars from '@/config/envVars';
 
 class RedisService {
     private client: Redis;
 
-    constructor(
-        host: string = process.env.REDIS_HOST || "127.0.0.1",
-        port: number = Number(process.env.REDIS_PORT) || 6379,
-        db: number = Number(process.env.REDIS_DB) || 0,
-    ) {
-        this.client = new Redis({
-            host: host,
-            port: port,
-            db: db,
-        });
-        this.client.on("connect", () => {
-            logger.info("[REDIS] Connected to Redis.");
-        });
+    constructor() {
+        this.client = envVars.REDIS_URL 
+            ? new Redis(envVars.REDIS_URL) 
+            : new Redis({
+                host: envVars.REDIS_HOST,
+                port: Number(envVars.REDIS_PORT),
+                db: Number(envVars.REDIS_DB),
+            });
 
-        this.client.on("error", (err: any) => {
-            logger.error("[REDIS] Failed to connect to Redis.", err);
-        });
+        this.client.on('connect', () => logger.info('[Redis] Connecting...'));
+        this.client.on('ready', () => logger.info('[Redis] Connected successfully.'));
+        this.client.on('error', (err) => logger.error('[Redis] Connection error', err));
+        this.client.on('end', () => logger.info('[Redis] Connection closed.'));
     }
 
-    async setValue(
-        key: string,
-        value: string,
-        expiry?: number,
-    ): Promise<boolean> {
-        try {
-            if (expiry) {
-                await this.client.set(key, value, "EX", expiry);
-            } else {
-                await this.client.set(key, value);
-            }
-            return true;
-        } catch (error) {
-            logger.error(
-                `[REDIS] Error setting value for key ${key}: ${error}`,
-            );
-            return false;
+    async connect(): Promise<void> {
+        if (this.client.status === 'wait') {
+            await this.client.connect();
         }
     }
 
+    async quit(): Promise<void> {
+        await this.client.quit();
+    }
+
     async getValue(key: string): Promise<string | null> {
-        try {
-            const value = await this.client.get(key);
-            if (value != null) {
-                return value;
-            } else {
-                logger.warn(`[REDIS] Key ${key} not found.`);
-                return null;
-            }
-        } catch (error) {
-            logger.error(
-                `[REDIS] Error getting value for key ${key}: ${error}`,
-            );
+        const data = await this.client.get(key);
+        if (data) {
+            logger.info(`[Redis] CACHE HIT for key: ${key}`);
+            return data;
+        } else {
+            logger.info(`[Redis] CACHE MISS for key: ${key}`);
             return null;
         }
     }
 
-    async updateValue(key: string, value: string): Promise<boolean> {
-        try {
-            const exists = await this.client.exists(key);
-            if (exists) {
-                await this.setValue(key, value);
-                return true;
-            } else {
-                logger.warn(`[REDIS] Key ${key} not found for update.`);
-                return false;
-            }
-        } catch (error) {
-            logger.error(
-                `[REDIS] Unexpected error updating value for key ${key}: ${error}`,
-            );
-            return false;
+    async setValue(key: string, value: string, expiry?: number): Promise<boolean> {
+        let result;
+        if (expiry) {
+            result = await this.client.set(key, value, 'EX', expiry);
+        } else {
+            result = await this.client.set(key, value);
         }
+        return result === 'OK';
+    }
+
+    async updateValue(key: string, value: string): Promise<boolean> {
+        const exists = await this.client.exists(key);
+        if (exists) {
+            await this.setValue(key, value);
+            return true;
+        }
+        return false;
     }
 
     async deleteValue(key: string): Promise<boolean> {
-        try {
-            const result = await this.client.del(key);
-            if (result > 0) {
-                return true;
-            } else {
-                logger.warn(`[REDIS] Key ${key} not found for deletion.`);
-                return false;
-            }
-        } catch (error) {
-            logger.error(`[REDIS] Error deleting key ${key}: ${error}`);
-            return false;
-        }
+        const result = await this.client.del(key);
+        return result > 0;
     }
 
-    async flushAll(): Promise<boolean> {
-        try {
-            await this.client.flushall();
-            return true;
-        } catch (error) {
-            logger.error(`[REDIS] Error flushing all keys: ${error}`);
-            return false;
-        }
+    async flushAll(): Promise<void> {
+        await this.client.flushall();
     }
 }
 
