@@ -12,14 +12,10 @@ const EnvConfigSchema = z.object({
 
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
-    // Database configuration
     DATABASE_URL: z.string().trim().min(1).url(),
-    // GOOGLE_CLIENT_SECRET: z.string().trim().min(1).optional(),
-    // GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
 
-    // JWT configuration
     JWT_SECRET: z.string().trim().min(8, "JWT_SECRET must be at least 8 characters long"),
-    // Session configuration for passport
+
     SESSION_SECRET: z
         .string()
         .trim()
@@ -30,12 +26,22 @@ const EnvConfigSchema = z.object({
     REDIS_HOST: z.string().trim().min(1).default("localhost"),
     REDIS_PORT: z.coerce.number().int().positive().default(4567),
     REDIS_DB: z.coerce.number().int().min(0).default(0),
+    REDIS_URL: z.string().trim().min(1).url().optional(),
 
-    // SMTP Email configuration
+    AWS_REGION: z.string().trim().min(1).default("us-east-1"),
+    AWS_ACCESS_KEY_ID: z.string().trim().min(1).default("dummy"),
+    AWS_SECRET_ACCESS_KEY: z.string().trim().min(1).default("dummy"),
+    S3_BUCKET_NAME: z.string().trim().min(1).default("dummy"),
+
     SMTP_HOST: z.string().trim().min(1),
     SMTP_PORT: z.coerce.number().int().positive().default(587),
     SMTP_USER: z.string().trim().min(1),
     SMTP_PASSWORD: z.string().trim().min(1),
+
+    TWILIO_ACCOUNT_SID: z.string().trim().min(1),
+    TWILIO_AUTH_TOKEN: z.string().trim().min(1),
+    TWILIO_VERIFY_SERVICE_SID: z.string().trim().min(1),
+    TWILIO_WHATSAPP_FROM: z.string().trim().min(1).optional(),
 });
 
 // Define the config type using Zod inference
@@ -51,12 +57,19 @@ const rawConfig = {
     REDIS_HOST: process.env.REDIS_HOST,
     REDIS_PORT: process.env.REDIS_PORT,
     REDIS_DB: process.env.REDIS_DB,
+    REDIS_URL: process.env.REDIS_URL,
+    AWS_REGION: process.env.AWS_REGION,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
     SMTP_HOST: process.env.SMTP_HOST,
     SMTP_PORT: process.env.SMTP_PORT,
     SMTP_USER: process.env.SMTP_USER,
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
-    // GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    // GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+    TWILIO_VERIFY_SERVICE_SID: process.env.TWILIO_VERIFY_SERVICE_SID,
+    TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
 };
 
 // Validate and parse configuration
@@ -96,10 +109,19 @@ export const {
     REDIS_HOST,
     REDIS_PORT,
     REDIS_DB,
+    REDIS_URL,
+    AWS_REGION,
+    AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY,
+    S3_BUCKET_NAME,
     SMTP_HOST,
     SMTP_PORT,
     SMTP_USER,
     SMTP_PASSWORD,
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+    TWILIO_VERIFY_SERVICE_SID,
+    TWILIO_WHATSAPP_FROM,
     // GOOGLE_CLIENT_SECRET,
     // GOOGLE_CLIENT_ID,
 } = envVars;

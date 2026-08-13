@@ -4,7 +4,7 @@ import z from "zod";
 export const UserCreateSchema = z.object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Invalid email format"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    phoneNumber: z.string().default("0000000000"), // fallback for now
 });
 
 export const UserUpdateSchema = UserCreateSchema.partial().omit({
@@ -13,9 +13,9 @@ export const UserUpdateSchema = UserCreateSchema.partial().omit({
 
 export const UserSchema = z.object({
     id: z.string(),
-    name: z.string(),
-    email: z.string().email(),
-    password: z.string(),
+    phoneNumber: z.string(),
+    name: z.string().nullable().optional(),
+    email: z.string().nullable().optional(),
 });
 
 export const AdminCreateSchema = z.object({

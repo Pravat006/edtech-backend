@@ -7,9 +7,7 @@ import { logger } from "./logger";
 import RedisService from "@/services/redis.service";
 
 declare global {
-    // eslint-disable-next-line no-var
     var prisma: PrismaClient;
-    // eslint-disable-next-line no-var
     var redis: RedisService;
 }
 
@@ -33,7 +31,6 @@ db.$connect()
         logger.error("[PRISMA] : failed to connect database : ", error);
     });
 
-export const redis = global.redis || new RedisService();
 
 if (process.env.NODE_ENV !== "production") {
     global.redis = redis;

@@ -1,24 +1,7 @@
 import { z } from "zod";
 import { UserUpdateSchema } from "./schema";
 
-export const RegisterSchema = z.object({
-    email: z.string().email(),
-    name: z.string().min(1, "Name is required"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-});
-export type Register = z.infer<typeof RegisterSchema>;
-
-export const VerifyRegistrationSchema = z.object({
-    email: z.string().email(),
-    otp: z.string().min(1, "Verification otp is required"),
-});
-export type VerifyRegistration = z.infer<typeof VerifyRegistrationSchema>;
-
-export const LoginSchema = z.object({
-    email: z.string().email("Invalid email format").min(1, "Email is required"),
-    password: z.string().min(1, "Password is required"),
-});
-export type Login = z.infer<typeof LoginSchema>;
+// User auth schemas have been moved to src/modules/auth/auth.schema.ts
 
 export const EmailOptionsSchema = z.object({
     to: z.string().email(),
@@ -34,9 +17,7 @@ export const SendContactForm = z.object({
     message: z.string(),
 });
 
-export const UpdateProfileSchema = UserUpdateSchema.omit({
-    password: true,
-});
+export const UpdateProfileSchema = UserUpdateSchema;
 export const ResetPasswordSchema = z.object({
     newPassword: z
         .string()
@@ -51,9 +32,7 @@ export const ChangePasswordSchema = z.object({
         .min(8, "New password must be at least 8 characters"),
 });
 
-export const RefreshTokenSchema = z.object({
-    token: z.string().min(1, "Refresh token is required"),
-});
+// Removed RefreshTokenSchema as it was moved to auth.schema.ts
 
 // Query Schema for common query parameters
 export const QuerySchema = z.object({
@@ -84,19 +63,10 @@ export const QuerySchema = z.object({
     minPrice: z.coerce.number().positive().optional(),
     maxPrice: z.coerce.number().positive().optional(),
 });
-export const VerifyLoginSchema = VerifyRegistrationSchema;
-export const AdminLoginSchema = LoginSchema.omit({ password: true });
-export const ForgotPasswordSchema = AdminLoginSchema;
-export const AdminRegisterSchema = RegisterSchema.omit({ password: true });
+// Admin auth schemas removed as per instruction
 
 export type Query = z.infer<typeof QuerySchema>;
-export type ForgotPassword = z.infer<typeof ForgotPasswordSchema>;
-export type ResetPassword = z.infer<typeof ResetPasswordSchema>;
-export type VerifyLogin = z.infer<typeof VerifyLoginSchema>;
-export type AdminRegister = z.infer<typeof AdminRegisterSchema>;
-export type AdminLogin = z.infer<typeof AdminLoginSchema>;
 export type SendContactForm = z.infer<typeof SendContactForm>;
 export type EmailInterface = z.infer<typeof EmailOptionsSchema>;
 export type UpdateProfile = z.infer<typeof UpdateProfileSchema>;
-export type RefreshToken = z.infer<typeof RefreshTokenSchema>;
 export type ChangePassword = z.infer<typeof ChangePasswordSchema>;

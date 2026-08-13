@@ -1,4 +1,4 @@
-ARG NODE_VERSION=20.14.0
+ARG NODE_VERSION=20.19.0
 
 # Builder 
 FROM node:${NODE_VERSION}-alpine AS builder
@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies first (layer cache)
 COPY package*.json ./
-RUN npm ci --include=dev
+RUN npm install --include=dev
 
 # Copy source
 COPY . .

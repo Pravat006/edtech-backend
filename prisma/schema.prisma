@@ -8,24 +8,587 @@ datasource db {
 }
 
 model Admin {
-  id    String    @id @default(uuid())
-  role  AdminRole @default(SUB)
-  name  String
-  email String    @unique
+  id        String    @id @default(uuid())
+  role      AdminRole @default(SUB)
+  name      String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  coursesManaged       Course[]        @relation("InstructorCourses")
+  reviewedReports      MessageReport[] @relation("ReviewedByAdmin")
+  reviewedTestimonials Testimonial[]   @relation("ReviewedByAdmin")
+
+  @@index([email])
+  @@index([role])
 }
 
 model User {
-  id          String  @id @default(uuid())
-  phoneNumber String  @unique
-  name        String?
-  email       String? @unique
-  avatarUrl   String?
+  id            String      @id @default(uuid())
+  phoneNumber   String      @unique
+  name          String?
+  email         String?     @unique
+  avatarMediaId String?
+  avatar        MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  preferences UserPreferences?
+
+  enrollments       Enrollment[]
+  payments          Payment[]
+  transactions      Transaction[]
+  progress          LessonProgress[]
+  quizAttempts      QuizAttempt[]
+  aiChatMessages    AiChatMessage[]
+  communityMessages CommunityMessage[]
+  reportsFiled      MessageReport[]    @relation("ReportedBy")
+  notifications     Notification[]
+  reviews           Review[]
+  certificates      Certificate[]
+  testimonials      Testimonial[]
+
+  wallet        Wallet?
+  referralCode  ReferralCode?
+  referralsMade Referral[]    @relation("ReferrerUser")
+  referredBy    Referral?     @relation("RefereeUser")
+
+  @@index([phoneNumber])
+}
+
+model UserPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  language String
+  subjects Subject[]
+  goals    Goal[]
+
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  subject     Subject
+  language    String
+  goals       Goal[]
+  price       Decimal @default(0) @db.Decimal(10, 2)
+
+  discountPrice      Decimal?    @db.Decimal(10, 2)
+  discountValidUntil DateTime?
+  isFree             Boolean     @default(false)
+  isPublished        Boolean     @default(false)
+  thumbnailMediaId   String?
+  thumbnail          MediaAsset? @relation("CourseThumbnail", fields: [thumbnailMediaId], references: [id])
+  instructorId       String?
+  instructor         Admin?      @relation("InstructorCourses", fields: [instructorId], references: [id])
+
+  // null = lifetime access. Affects only NEW enrollments, never existing ones.
+  accessDurationDays Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  modules           Module[]
+  enrollments       Enrollment[]
+  reviews           Review[]
+  communityMessages CommunityMessage[]
+  testimonials      Testimonial[]
+
+  @@index([subject])
+  @@index([language])
+  @@index([discountValidUntil])
+}
+
+model Module {
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int
+
+  lessons Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id       String @id @default(uuid())
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int
+
+  // Total video duration in seconds (used for progress % calculation)
+  durationSec     Int?
+  // Lesson unlocks N days after enrollment date (drip content)
+  unlockAfterDays Int?
+  // Preview lesson accessible without enrollment
+  isFreePreview   Boolean @default(false)
+
+  contents       LessonContent[]
+  quiz           Quiz?
+  progress       LessonProgress[]
+  aiChatMessages AiChatMessage[]
+
+  @@unique([moduleId, order])
+  @@index([moduleId])
+}
+
+// Each lesson can have multiple ordered content blocks (video + pdf + notes together)
+model LessonContent {
+  id       String @id @default(uuid())
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  type    LessonContentType // VIDEO, PDF, TEXT
+  order   Int // display order within the lesson
+  title   String? // e.g. "Lecture Notes", "Reference PDF"
+  body    String? // for TEXT/markdown note content
+  mediaId String?
+  media   MediaAsset?       @relation(fields: [mediaId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([lessonId, order])
+  @@index([lessonId])
+}
+
+model Enrollment {
+  id         String           @id @default(uuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status     EnrollmentStatus @default(ACTIVE)
+  couponCode String?
+
+  enrolledAt         DateTime  @default(now())
+  // Snapshotted at purchase from Course.accessDurationDays.
+  // null = lifetime access. Never recalculated after enrollment is created.
+  accessDurationDays Int?
+  expiresAt          DateTime?
+  completedAt        DateTime?
+
+  payment     Payment?
+  certificate Certificate?
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([expiresAt])
+}
+
+model Payment {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentId String?     @unique
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id])
+
+  provider        PaymentProvider
+  providerOrderId String?
+  amount          Decimal         @db.Decimal(10, 2)
+  currency        String          @default("INR")
+  status          PaymentStatus   @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  type     TransactionType
+  status   TransactionStatus @default(PENDING)
+  amount   Decimal           @db.Decimal(10, 2)
+  currency String            @default("INR")
+
+  providerReferenceId String?
+  failureReason       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([paymentId])
+  @@index([type])
+  @@index([status])
+}
+
+model LessonProgress {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  status          ProgressStatus @default(NOT_STARTED)
+  watchTimeSec    Int            @default(0)
+  lastPositionSec Int            @default(0)
+  completedAt     DateTime?
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Certificate {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentId String     @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  issuedAt     DateTime   @default(now())
+
+  certificateMediaId String?
+  certificateMedia   MediaAsset? @relation("CertificateMedia", fields: [certificateMediaId], references: [id])
+
+  @@index([userId])
+}
+
+model Quiz {
+  id       String @id @default(uuid())
+  lessonId String @unique
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title    String
+
+  questions Question[]
+  attempts  QuizAttempt[]
+}
+
+model Question {
+  id              String @id @default(uuid())
+  quizId          String
+  quiz            Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  text            String
+  options         Json
+  correctOptionId String
+  order           Int
+
+  @@index([quizId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     Json
+  score       Int
+  attemptedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([quizId])
+}
+
+model AiChatMessage {
+  id       String  @id @default(uuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId String?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  sender    ChatSender
+  message   String
+  mode      String? // "quick_answer" | "hint" — only meaningful for AI responses
+  escalated Boolean    @default(false)
+
+  // Credits deducted from Wallet for this AI response (0 for free/hint modes)
+  creditCost Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([lessonId])
+}
+
+model CommunityMessage {
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  message   String
+  createdAt DateTime @default(now())
+
+  reports MessageReport[]
+
+  @@index([courseId])
+  @@index([userId])
+}
+
+model MessageReport {
+  id           String           @id @default(uuid())
+  messageId    String
+  message      CommunityMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reportedById String
+  reportedBy   User             @relation("ReportedBy", fields: [reportedById], references: [id], onDelete: Cascade)
+
+  reason       String?
+  status       ReportStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy   Admin?       @relation("ReviewedByAdmin", fields: [reviewedById], references: [id])
+  createdAt    DateTime     @default(now())
+
+  @@index([messageId])
+  @@index([reviewedById])
+}
+
+model Review {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceCredits Int      @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model MediaAsset {
+  id   String    @id @default(uuid())
+  type MediaType
+  url  String
+
+  mimeType   String
+  storageKey String @unique
+  provider   String
+
+  bucket String?
+  region String?
+
+  sizeBytes Int?
+
+  // Upload related fields
+  uploadStrategy UploadStrategy @default(SINGLE_PART)
+  uploadStatus   FileStatus     @default(INITIATED)
+  uploadId       String?
+
+  createdAt DateTime @default(now())
+
+  // Back relations
+  lessonContents       LessonContent[]
+  coursesWithThumbnail Course[]        @relation("CourseThumbnail")
+  usersWithAvatar      User[]          @relation("UserAvatar")
+  certificates         Certificate[]   @relation("CertificateMedia")
+}
+
+model ReferralCode {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code   String @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([code])
+}
+
+model Referral {
+  id         String @id @default(uuid())
+  referrerId String
+  referrer   User   @relation("ReferrerUser", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeId  String @unique
+  referee    User   @relation("RefereeUser", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  codeUsed     String
+  status       ReferralStatus @default(PENDING)
+  rewardAmount Decimal?       @db.Decimal(10, 2)
+  rewardedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([referrerId])
+  @@index([status])
+}
+
+model Testimonial {
+  id       String  @id @default(uuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  content      String
+  rating       Int?
+  status       TestimonialStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy   Admin?            @relation("ReviewedByAdmin", fields: [reviewedById], references: [id])
+  isFeatured   Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([reviewedById])
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  channel   NotificationChannel
+  title     String
+  body      String
+  read      Boolean             @default(false)
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId])
 }
 
 enum AdminRole {
   SUPER
   SUB
+}
+
+enum Goal {
+  POPULAR_EXAMS
+  GOVERNMENT_EXAMS
+  ACADEMIC
+  SKILL_BASED
+}
+
+enum Subject {
+  ENGINEERING
+  ARTS
+  SCIENCE
+  MATH
+  COMMERCE
+  OTHER
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  RAZORPAY
+  STRIPE
+}
+
+enum LessonContentType {
+  VIDEO
+  PDF
+  TEXT // markdown/rich-text notes
+  QUIZ
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ChatSender {
+  USER
+  AI
+  INSTRUCTOR
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  SMS
+  IN_APP
+}
+
+enum NotificationType {
+  ENROLLMENT_CONFIRMATION
+  COURSE_REMINDER
+  NEW_CONTENT
+  PROGRESS_NUDGE
+  LIVE_SESSION
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+  REFERRAL_CREDIT // credits earned by referring someone
+  REFERRAL_REDEMPTION // credits spent as course discount at checkout
+  AI_CREDIT_USAGE // credits spent on AI doubt-solving features
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  PDF
+  CERTIFICATE
+  BADGE
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ReferralStatus {
+  PENDING
+  SIGNED_UP
+  REWARDED
+}
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UploadStrategy {
+  SINGLE_PART
+  MULTIPART
+}
+
+enum FileStatus {
+  INITIATED
+  UPLOADING
+  COMPLETED
+  FAILED
 }
