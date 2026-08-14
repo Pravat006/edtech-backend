@@ -15,6 +15,9 @@ export const GoalEnum = z.enum([
     "SKILL_BASED"
 ]);
 
+export type Subject = z.infer<typeof SubjectEnum>;
+export type Goal = z.infer<typeof GoalEnum>;
+
 export const UpdateProfileSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters").optional(),
     email: z.string().email("Invalid email format").optional(),

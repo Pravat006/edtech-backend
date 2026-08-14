@@ -1,13 +1,14 @@
 import envVars from "@/config/envVars";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 export type Payload = {
     id: string;
     jti: string;
+    role?: string;
 };
 const JWT_SECRET = envVars.JWT_SECRET;
-export const signToken = (payload: Payload, expiresIn: string = "7d") => {
+export const signToken = (payload: Payload, expiresIn: SignOptions["expiresIn"] = "7d") => {
     return jwt.sign(payload, JWT_SECRET as string, {
-        expiresIn: expiresIn as any,
+        expiresIn,
     });
 };
 

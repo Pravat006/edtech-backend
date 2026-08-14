@@ -9,10 +9,14 @@ import userRoutes from "./users/user.routes";
 
 const router = Router();
 
+// User Flow Routes
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
-router.use("/public", publicRoutes);
+
+// Admin Flow Routes
 router.use("/admin", adminRoutes);
+
+router.use("/public", publicRoutes);
 router.use("/courses", courseRoutes);
 router.use("/enrollments", enrollmentRoutes);
 router.use("/payments", paymentRoutes);

@@ -41,7 +41,7 @@ const verifyOtpController = async (req: Request, res: Response) => {
             phoneNumber: user.phoneNumber,
             name: user.name,
             email: user.email,
-            referralCode: (user as any).referralCode?.code,
+            referralCode: user.referralCode?.code,
         },
         tokens,
     });

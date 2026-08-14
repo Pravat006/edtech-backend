@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import modulesRouter from "./modules";
 import { convertError, errorMiddleware } from "./middleware/error.middleware";
 import { rateLimiter } from "./middleware/rateLimiter";
@@ -12,7 +13,8 @@ httpLogger(app);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({ origin: process.env.ADMIN_ORIGIN, credentials: true }));
 
 app.use(helmet());
 app.use(rateLimiter);

@@ -133,7 +133,7 @@ const cleanupOldLogs = () => {
             }
         });
     } catch (error) {
-        logger.error('Error during log cleanup:', error as any);
+        logger.error(`Error during log cleanup: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
 
