@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { SubjectEnum, GoalEnum } from "../users/user.schema";
 
-// ─── Shared Enums ────────────────────────────────────────────────────────────
 const LessonContentTypeEnum = z.enum(["VIDEO", "PDF", "TEXT"]);
 const ProgressStatusEnum = z.enum(["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]);
 
-// ─── Admin: Course ────────────────────────────────────────────────────────────
 export const CreateCourseSchema = z.object({
     title: z.string().min(3, "Title must be at least 3 characters"),
     description: z.string().min(10, "Description must be at least 10 characters"),
@@ -65,7 +63,7 @@ export const CourseListQuerySchema = z.object({
         .optional()
         .transform((val) => val === "true" ? true : val === "false" ? false : undefined),
     search: z.string().optional(),
-    cursor: z.string().uuid().optional(),  // cursor = last course id seen
+    cursor: z.string().uuid().optional(),
     limit: z.coerce.number().int().positive().max(50).default(20),
 });
 export type CourseListQuery = z.infer<typeof CourseListQuerySchema>;

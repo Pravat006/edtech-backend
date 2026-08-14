@@ -3,8 +3,6 @@ import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import { CourseListQuery, UpdateProgress, SubmitReview } from "./course.schema";
 
-// ─── Shared helpers ───────────────────────────────────────────────────────────
-
 const COURSE_SELECT = {
     id: true,
     title: true,
@@ -28,10 +26,10 @@ function shapeCourse(course: RawCourse) {
     const avgRating =
         course.reviews.length > 0
             ? Math.round(
-                  (course.reviews.reduce((sum, r) => sum + r.rating, 0) /
-                      course.reviews.length) *
-                      10
-              ) / 10
+                (course.reviews.reduce((sum, r) => sum + r.rating, 0) /
+                    course.reviews.length) *
+                10
+            ) / 10
             : null;
 
     return {
@@ -51,8 +49,6 @@ function shapeCourse(course: RawCourse) {
         createdAt: course.createdAt,
     };
 }
-
-// ─── Service ──────────────────────────────────────────────────────────────────
 
 class CourseService {
     /**

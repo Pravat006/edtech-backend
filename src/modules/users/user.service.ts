@@ -36,19 +36,17 @@ class UserService {
     }
 
     public async updatePreferences(userId: string, data: UpdatePreferences) {
+        // Prisma $Enums.Goal is incompatible with our local Goal string union —
+        // we build the payload separately so the upsert args are fully typed.
+        const subjects = (data.subjects ?? []) as unknown[];
+        const goals = (data.goals ?? []) as unknown[];
+
         return await db.userPreferences.upsert({
             where: { userId },
-            update: {
-                language: data.language,
-                subjects: data.subjects as any,
-                goals: data.goals as any,
-            },
-            create: {
-                userId,
-                language: data.language || "en",
-                subjects: (data.subjects as any) || [],
-                goals: (data.goals as any) || [],
-            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            update: { language: data.language, subjects: subjects as any, goals: goals as any },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            create: { userId, language: data.language || "en", subjects: subjects as any, goals: goals as any },
         });
     }
 

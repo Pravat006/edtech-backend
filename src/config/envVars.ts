@@ -42,6 +42,10 @@ const EnvConfigSchema = z.object({
     TWILIO_AUTH_TOKEN: z.string().trim().min(1),
     TWILIO_VERIFY_SERVICE_SID: z.string().trim().min(1),
     TWILIO_WHATSAPP_FROM: z.string().trim().min(1).optional(),
+
+    RAZORPAY_KEY_ID: z.string().trim().default("rzp_test_dummykey"),
+    RAZORPAY_KEY_SECRET: z.string().trim().default("dummy_secret"),
+    RAZORPAY_WEBHOOK_SECRET: z.string().trim().default("dummy_webhook_secret"),
 });
 
 // Define the config type using Zod inference
@@ -70,6 +74,9 @@ const rawConfig = {
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
     TWILIO_VERIFY_SERVICE_SID: process.env.TWILIO_VERIFY_SERVICE_SID,
     TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
 };
 
 // Validate and parse configuration
@@ -122,8 +129,10 @@ export const {
     TWILIO_AUTH_TOKEN,
     TWILIO_VERIFY_SERVICE_SID,
     TWILIO_WHATSAPP_FROM,
-    // GOOGLE_CLIENT_SECRET,
-    // GOOGLE_CLIENT_ID,
+    RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET,
+    RAZORPAY_WEBHOOK_SECRET,
+
 } = envVars;
 
 export default envVars;

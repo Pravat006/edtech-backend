@@ -6,7 +6,6 @@ import * as managementController from "./admin.management.controller";
 
 const router = Router();
 
-// All routes require SUPER admin privileges
 router.use(verifyAdmin);
 router.use(requireSuperAdmin);
 

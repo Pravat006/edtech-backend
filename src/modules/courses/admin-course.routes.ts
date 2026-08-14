@@ -4,20 +4,15 @@ import * as adminCourseController from "./admin-course.controller";
 
 const router = Router();
 
-// All admin course routes require admin authentication
 router.use(verifyAdmin);
 
-// ─── Course Management ────────────────────────────────────────────────────────
 router.post("/", adminCourseController.createCourse);
 router.put("/:courseId", adminCourseController.updateCourse);
 router.patch("/:courseId/publish", adminCourseController.togglePublishCourse);
 
-// ─── Module Management ────────────────────────────────────────────────────────
 router.post("/:courseId/modules", adminCourseController.createModule);
 router.put("/:courseId/modules/:moduleId", adminCourseController.updateModule);
 router.delete("/:courseId/modules/:moduleId", adminCourseController.deleteModule);
-
-// ─── Lesson Management ────────────────────────────────────────────────────────
 router.post("/:courseId/modules/:moduleId/lessons", adminCourseController.createLesson);
 router.put(
     "/:courseId/modules/:moduleId/lessons/:lessonId",
@@ -28,7 +23,6 @@ router.delete(
     adminCourseController.deleteLesson
 );
 
-// ─── Lesson Content Management ────────────────────────────────────────────────
 router.post(
     "/:courseId/modules/:moduleId/lessons/:lessonId/contents",
     adminCourseController.addLessonContent
@@ -38,7 +32,6 @@ router.delete(
     adminCourseController.deleteLessonContent
 );
 
-// ─── Analytics & Preview ──────────────────────────────────────────────────────
 router.get("/:courseId/analytics", adminCourseController.getCourseAnalytics);
 router.get("/:courseId/preview", adminCourseController.getCoursePreview);
 

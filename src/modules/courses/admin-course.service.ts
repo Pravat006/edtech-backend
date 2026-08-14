@@ -196,8 +196,6 @@ class AdminCourseService {
         };
     }
 
-    // ─── Module Management ────────────────────────────────────────────────────────
-
     /**
      * POST /v1/admin/courses/:courseId/modules
      * Add a module to a course.
@@ -312,7 +310,6 @@ class AdminCourseService {
         return { message: "Module deleted successfully and order normalized" };
     }
 
-    // ─── Lesson Management ────────────────────────────────────────────────────────
 
     /**
      * POST /v1/admin/courses/:courseId/modules/:moduleId/lessons
@@ -464,7 +461,6 @@ class AdminCourseService {
         return { message: "Lesson deleted successfully and order normalized" };
     }
 
-    // ─── Lesson Content Management ────────────────────────────────────────────────
 
     /**
      * POST /v1/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId/contents
@@ -588,8 +584,6 @@ class AdminCourseService {
 
         return { message: "Lesson content block deleted successfully and order normalized" };
     }
-
-    // ─── Course Analytics ──────────────────────────────────────────────────────────
 
     /**
      * GET /v1/admin/courses/:courseId/analytics
