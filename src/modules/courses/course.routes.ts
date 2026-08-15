@@ -13,6 +13,7 @@ router.get("/my-courses", courseController.getMyCourses);
 router.get("/:courseId", courseController.getCourseDetail);
 
 router.get("/:courseId/learn", courseController.getLearnData);
+router.get("/:courseId/lessons/:lessonId/content", courseController.getLessonContent);
 router.patch(
     "/:courseId/lessons/:lessonId/progress",
     courseController.updateLessonProgress

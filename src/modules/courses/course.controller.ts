@@ -65,6 +65,17 @@ export const getLearnData = async (req: Request, res: Response) => {
     });
 };
 
+export const getLessonContent = async (req: Request, res: Response) => {
+    const { courseId, lessonId } = req.params;
+
+    const content = await courseService.getLessonContent(courseId, lessonId, req.user!.id);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        data: content,
+    });
+};
+
 export const updateLessonProgress = async (req: Request, res: Response) => {
     const { courseId, lessonId } = req.params;
 

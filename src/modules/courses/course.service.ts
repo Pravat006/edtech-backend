@@ -450,24 +450,6 @@ class CourseService {
                                 quiz: {
                                     select: { id: true, title: true },
                                 },
-                                contents: {
-                                    orderBy: { order: "asc" },
-                                    select: {
-                                        id: true,
-                                        type: true,
-                                        order: true,
-                                        title: true,
-                                        body: true,
-                                        media: {
-                                            select: {
-                                                id: true,
-                                                url: true,
-                                                type: true,
-                                                mimeType: true,
-                                            },
-                                        },
-                                    },
-                                },
                             },
                         },
                     },
@@ -528,7 +510,6 @@ class CourseService {
                         lastPositionSec: userProgress.lastPositionSec,
                         completedAt: userProgress.completedAt,
                     },
-                    contents: isUnlocked ? lesson.contents : [],
                     quiz: isUnlocked ? lesson.quiz : null,
                 };
             });
@@ -553,6 +534,65 @@ class CourseService {
     }
 
     /**
+     * GET /v1/courses/:courseId/lessons/:lessonId/content
+     * Lazy-loads heavy content (videos, PDFs, text) for a single lesson.
+     */
+    public async getLessonContent(courseId: string, lessonId: string, userId: string) {
+        const now = new Date();
+
+        // 1. Verify enrollment
+        const enrollment = await db.enrollment.findUnique({
+            where: { userId_courseId: { userId, courseId } },
+            select: { status: true, enrolledAt: true, expiresAt: true },
+        });
+
+        if (!enrollment || enrollment.status !== "ACTIVE") {
+            throw new APIError(httpStatus.FORBIDDEN, "You are not enrolled in this course");
+        }
+        if (enrollment.expiresAt && enrollment.expiresAt < now) {
+            throw new APIError(httpStatus.FORBIDDEN, "Your access to this course has expired");
+        }
+
+        // 2. Get lesson details to check drip status
+        const lesson = await db.lesson.findFirst({
+            where: { id: lessonId, module: { courseId } },
+            select: { 
+                id: true, 
+                unlockAfterDays: true, 
+                isFreePreview: true,
+                contents: {
+                    orderBy: { order: "asc" },
+                    select: {
+                        id: true,
+                        type: true,
+                        order: true,
+                        title: true,
+                        body: true,
+                        media: {
+                            select: { id: true, url: true, type: true, mimeType: true },
+                        },
+                    },
+                }
+            },
+        });
+
+        if (!lesson) {
+            throw new APIError(httpStatus.NOT_FOUND, "Lesson not found in this course");
+        }
+
+        // 3. Check Drip Status
+        const diffMs = now.getTime() - enrollment.enrolledAt.getTime();
+        const daysEnrolled = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const isUnlocked = lesson.isFreePreview || !lesson.unlockAfterDays || daysEnrolled >= lesson.unlockAfterDays;
+
+        if (!isUnlocked) {
+            throw new APIError(httpStatus.FORBIDDEN, "This lesson is currently locked (Drip content)");
+        }
+
+        return lesson.contents;
+    }
+
+    /**
      * PATCH /v1/courses/:courseId/lessons/:lessonId/progress
      * Save watch position and status for a lesson.
      * Auto-issues a certificate if all course lessons are completed.
@@ -565,127 +605,129 @@ class CourseService {
     ) {
         const now = new Date();
 
-        // 1. Verify lesson exists and belongs to the given course
-        const lesson = await db.lesson.findFirst({
-            where: {
-                id: lessonId,
-                module: { courseId },
-            },
-            select: {
-                id: true,
-                isFreePreview: true,
-            },
-        });
-
-        if (!lesson) {
-            throw new APIError(httpStatus.NOT_FOUND, "Lesson not found in this course");
-        }
-
-        // 2. Check enrollment and expiration
-        const enrollment = await db.enrollment.findUnique({
-            where: {
-                userId_courseId: { userId, courseId },
-            },
-            select: {
-                id: true,
-                status: true,
-                expiresAt: true,
-            },
-        });
-
-        // Non-enrolled users watching free previews: do not save progress
-        if (!enrollment || enrollment.status !== "ACTIVE") {
-            if (lesson.isFreePreview) {
-                return {
-                    progress: null,
-                    certificateIssued: false,
-                    message: "Progress tracking ignored for non-enrolled free preview user",
-                };
-            }
-            throw new APIError(httpStatus.FORBIDDEN, "You are not enrolled in this course");
-        }
-
-        if (enrollment.expiresAt && enrollment.expiresAt < now) {
-            throw new APIError(httpStatus.FORBIDDEN, "Your access to this course has expired");
-        }
-
-        // 3. Upsert lesson progress
-        const existingProgress = await db.lessonProgress.findUnique({
-            where: {
-                userId_lessonId: { userId, lessonId },
-            },
-            select: { completedAt: true },
-        });
-
-        const completedAt =
-            data.status === "COMPLETED"
-                ? (existingProgress?.completedAt ?? now)
-                : null;
-
-        const progress = await db.lessonProgress.upsert({
-            where: {
-                userId_lessonId: { userId, lessonId },
-            },
-            update: {
-                watchTimeSec: data.watchTimeSec,
-                lastPositionSec: data.lastPositionSec,
-                status: data.status,
-                completedAt,
-            },
-            create: {
-                userId,
-                lessonId,
-                watchTimeSec: data.watchTimeSec,
-                lastPositionSec: data.lastPositionSec,
-                status: data.status,
-                completedAt,
-            },
-        });
-
-        // 4. Auto-issue Certificate check if status is COMPLETED
-        let certificateIssued = false;
-
-        if (data.status === "COMPLETED") {
-            const totalLessons = await db.lesson.count({
-                where: { module: { courseId } },
-            });
-
-            const completedLessons = await db.lessonProgress.count({
+        return await db.$transaction(async (tx) => {
+            // 1. Verify lesson exists and belongs to the given course
+            const lesson = await tx.lesson.findFirst({
                 where: {
-                    userId,
-                    status: "COMPLETED",
-                    lesson: { module: { courseId } },
+                    id: lessonId,
+                    module: { courseId },
+                },
+                select: {
+                    id: true,
+                    isFreePreview: true,
                 },
             });
 
-            if (totalLessons > 0 && completedLessons >= totalLessons) {
-                // Idempotent certificate check
-                const existingCert = await db.certificate.findUnique({
-                    where: { enrollmentId: enrollment.id },
+            if (!lesson) {
+                throw new APIError(httpStatus.NOT_FOUND, "Lesson not found in this course");
+            }
+
+            // 2. Check enrollment and expiration
+            const enrollment = await tx.enrollment.findUnique({
+                where: {
+                    userId_courseId: { userId, courseId },
+                },
+                select: {
+                    id: true,
+                    status: true,
+                    expiresAt: true,
+                },
+            });
+
+            // Non-enrolled users watching free previews: do not save progress
+            if (!enrollment || enrollment.status !== "ACTIVE") {
+                if (lesson.isFreePreview) {
+                    return {
+                        progress: null,
+                        certificateIssued: false,
+                        message: "Progress tracking ignored for non-enrolled free preview user",
+                    };
+                }
+                throw new APIError(httpStatus.FORBIDDEN, "You are not enrolled in this course");
+            }
+
+            if (enrollment.expiresAt && enrollment.expiresAt < now) {
+                throw new APIError(httpStatus.FORBIDDEN, "Your access to this course has expired");
+            }
+
+            // 3. Upsert lesson progress
+            const existingProgress = await tx.lessonProgress.findUnique({
+                where: {
+                    userId_lessonId: { userId, lessonId },
+                },
+                select: { completedAt: true },
+            });
+
+            const completedAt =
+                data.status === "COMPLETED"
+                    ? (existingProgress?.completedAt ?? now)
+                    : null;
+
+            const progress = await tx.lessonProgress.upsert({
+                where: {
+                    userId_lessonId: { userId, lessonId },
+                },
+                update: {
+                    watchTimeSec: data.watchTimeSec,
+                    lastPositionSec: data.lastPositionSec,
+                    status: data.status,
+                    completedAt,
+                },
+                create: {
+                    userId,
+                    lessonId,
+                    watchTimeSec: data.watchTimeSec,
+                    lastPositionSec: data.lastPositionSec,
+                    status: data.status,
+                    completedAt,
+                },
+            });
+
+            // 4. Auto-issue Certificate check if status is COMPLETED
+            let certificateIssued = false;
+
+            if (data.status === "COMPLETED") {
+                const totalLessons = await tx.lesson.count({
+                    where: { module: { courseId } },
                 });
 
-                if (!existingCert) {
-                    await db.certificate.create({
-                        data: {
-                            userId,
-                            enrollmentId: enrollment.id,
-                        },
+                const completedLessons = await tx.lessonProgress.count({
+                    where: {
+                        userId,
+                        status: "COMPLETED",
+                        lesson: { module: { courseId } },
+                    },
+                });
+
+                if (totalLessons > 0 && completedLessons >= totalLessons) {
+                    // Idempotent certificate check
+                    const existingCert = await tx.certificate.findUnique({
+                        where: { enrollmentId: enrollment.id },
                     });
 
-                    await db.enrollment.update({
-                        where: { id: enrollment.id },
-                        data: { completedAt: now },
-                    });
+                    if (!existingCert) {
+                        await tx.certificate.create({
+                            data: {
+                                userId,
+                                enrollmentId: enrollment.id,
+                            },
+                        });
 
-                    certificateIssued = true;
+                        await tx.enrollment.update({
+                            where: { id: enrollment.id },
+                            data: { completedAt: now },
+                        });
+
+                        certificateIssued = true;
+                    }
                 }
             }
-        }
 
-        return {
-            progress,
-            certificateIssued,
-        };
+            return {
+                progress,
+                certificateIssued,
+            };
+        });
     }
 
     /**
