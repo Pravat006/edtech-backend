@@ -5,6 +5,7 @@ import envVars from "@/config/envVars";
 import { db } from "@/config/db";
 import { Admin, User } from "@/@types/schema";
 import { logger } from "@/config/logger";
+import { redis } from "@/config/redis";
 
 declare global {
     namespace Express {
@@ -42,13 +43,27 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
             if (!decoded.id || !decoded.jti) {
                 throw new APIError(401, "Invalid token payload.");
             }
-            // Check if user exists
-            const user = await db.user.findUnique({ where: { id: decoded.id } }) as User | null;
-            if (!user) {
-                throw new APIError(
-                    401,
-                    "Unauthorized. User associated with this token not found.",
-                );
+            // Check Redis Cache first
+            const cacheKey = `user:${decoded.id}`;
+            const cachedUser = await redis.getValue(cacheKey);
+
+            let user: User | null = null;
+
+            if (cachedUser) {
+                user = JSON.parse(cachedUser) as User;
+            } else {
+                // Cache Miss: Query DB
+                user = await db.user.findUnique({ where: { id: decoded.id } }) as User | null;
+                
+                if (!user) {
+                    throw new APIError(
+                        401,
+                        "Unauthorized. User associated with this token not found.",
+                    );
+                }
+                
+                // Save to Cache for 1 hour (3600 seconds)
+                await redis.setValue(cacheKey, JSON.stringify(user), 3600);
             }
 
             // Attach user to the request object

@@ -5,6 +5,7 @@ import envVars from "@/config/envVars";
 import adminService from "@/services/admin.service";
 import { Admin } from "@/@types/schema";
 import { logger } from "@/config/logger";
+import { redis } from "@/config/redis";
 
 export const authenticateAdmin = async (req: Request, res: Response, next: NextFunction) => {
         const authHeader = req.headers.authorization;
@@ -28,12 +29,23 @@ export const authenticateAdmin = async (req: Request, res: Response, next: NextF
                 throw new APIError(401, "Invalid token payload.");
             }
 
-            const admin = await adminService.getAdminById(decoded.id);
-            if (!admin) {
-                throw new APIError(
-                    401,
-                    "Unauthorized. Admin associated with this token not found."
-                );
+            const cacheKey = `admin:${decoded.id}`;
+            const cachedAdmin = await redis.getValue(cacheKey);
+
+            let admin: Admin | null = null;
+
+            if (cachedAdmin) {
+                admin = JSON.parse(cachedAdmin) as Admin;
+            } else {
+                admin = await adminService.getAdminById(decoded.id) as Admin | null;
+                if (!admin) {
+                    throw new APIError(
+                        401,
+                        "Unauthorized. Admin associated with this token not found."
+                    );
+                }
+                
+                await redis.setValue(cacheKey, JSON.stringify(admin), 3600);
             }
 
             req.admin = admin;
