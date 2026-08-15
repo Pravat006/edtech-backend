@@ -28,6 +28,7 @@ model User {
   id            String      @id @default(uuid())
   phoneNumber   String      @unique
   name          String?
+  password      String?
   email         String?     @unique
   avatarMediaId String?
   avatar        MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id])

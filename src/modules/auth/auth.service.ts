@@ -11,7 +11,10 @@ import {
     isRefreshTokenValid,
     revokeRefreshToken,
 } from "@/services/token.service";
-import { ProfileSetup } from "./auth.schema";
+import { ProfileSetup, Login, SetPassword, ChangePassword } from "./auth.schema";
+import envVars from "@/config/envVars";
+import jwt from "jsonwebtoken";
+import * as argon2 from "argon2";
 
 class AuthService {
     public async sendOtp(phoneNumber: string) {
@@ -55,6 +58,35 @@ class AuthService {
             isNewUser = true;
         }
 
+        const setupToken = jwt.sign(
+            { phoneNumber, userId: user.id }, 
+            envVars.JWT_SECRET, 
+            { expiresIn: '15m' }
+        );
+
+        return {
+            isNewUser,
+            setupToken
+        };
+    }
+
+    public async setPassword(data: SetPassword) {
+        let decoded: any;
+        try {
+            decoded = jwt.verify(data.setupToken, envVars.JWT_SECRET);
+        } catch (err) {
+            throw new APIError(httpStatus.UNAUTHORIZED, "Invalid or expired setup token.");
+        }
+
+        const userId = decoded.userId;
+
+        const hashedPassword = await argon2.hash(data.password);
+
+        const user = await db.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
         const jti = uuidv4();
         const { accessToken, refreshToken } = generateTokens({
             id: user.id,
@@ -62,13 +94,71 @@ class AuthService {
         });
 
         return {
-            isNewUser,
             user,
             tokens: {
                 accessToken,
                 refreshToken,
             }
         };
+    }
+
+    public async login(data: Login) {
+        const user = await db.user.findUnique({
+            where: { phoneNumber: data.phoneNumber }
+        });
+
+        if (!user || !user.password) {
+            throw new APIError(
+                httpStatus.UNAUTHORIZED, 
+                "Account not found or password not set. Please use forgot password."
+            );
+        }
+
+        const isValidPassword = await argon2.verify(user.password, data.password);
+        if (!isValidPassword) {
+            throw new APIError(httpStatus.UNAUTHORIZED, "Invalid phone number or password.");
+        }
+
+        const jti = uuidv4();
+        const { accessToken, refreshToken } = generateTokens({
+            id: user.id,
+            jti,
+        });
+
+        return {
+            user,
+            tokens: {
+                accessToken,
+                refreshToken,
+            }
+        };
+    }
+
+    public async changePassword(userId: string, data: ChangePassword) {
+        const user = await db.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user || !user.password) {
+            throw new APIError(
+                httpStatus.UNAUTHORIZED, 
+                "Account not found or password not set. Please use forgot password."
+            );
+        }
+
+        const isValidPassword = await argon2.verify(user.password, data.oldPassword);
+        if (!isValidPassword) {
+            throw new APIError(httpStatus.UNAUTHORIZED, "Incorrect old password.");
+        }
+
+        const hashedNewPassword = await argon2.hash(data.newPassword);
+
+        await db.user.update({
+            where: { id: userId },
+            data: { password: hashedNewPassword }
+        });
+
+        return { success: true };
     }
 
     public async setupProfile(userId: string, data: ProfileSetup) {

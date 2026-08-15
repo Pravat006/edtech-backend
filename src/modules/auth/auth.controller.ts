@@ -5,7 +5,10 @@ import {
     SendOtp,
     VerifyOtp,
     ProfileSetup,
-    RefreshToken
+    RefreshToken,
+    Login,
+    SetPassword,
+    ChangePassword
 } from "./auth.schema";
 import { authService } from "./auth.service";
 
@@ -30,20 +33,74 @@ const verifyOtpController = async (req: Request, res: Response) => {
         throw new APIError(httpStatus.BAD_REQUEST, "Phone number and OTP are required.");
     }
 
-    const { isNewUser, user, tokens } = await authService.verifyOtp(phoneNumber, otp);
+    const { isNewUser, setupToken } = await authService.verifyOtp(phoneNumber, otp);
 
     res.status(httpStatus.OK).json({
         success: true,
-        message: isNewUser ? "User registered successfully." : "User logged in successfully.",
+        message: isNewUser ? "Phone verified. Please set your password." : "Phone verified. Please reset your password.",
         isNewUser,
+        setupToken,
+    });
+};
+
+const setPasswordController = async (req: Request, res: Response) => {
+    const data = req.body as SetPassword;
+    if (!data.setupToken || !data.password) {
+        throw new APIError(httpStatus.BAD_REQUEST, "Setup token and password are required.");
+    }
+
+    const { user, tokens } = await authService.setPassword(data);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: "Password set successfully.",
         user: {
             id: user.id,
             phoneNumber: user.phoneNumber,
             name: user.name,
             email: user.email,
-            referralCode: user.referralCode?.code,
         },
         tokens,
+    });
+};
+
+const loginController = async (req: Request, res: Response) => {
+    const data = req.body as Login;
+    if (!data.phoneNumber || !data.password) {
+        throw new APIError(httpStatus.BAD_REQUEST, "Phone number and password are required.");
+    }
+
+    const { user, tokens } = await authService.login(data);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: "User logged in successfully.",
+        user: {
+            id: user.id,
+            phoneNumber: user.phoneNumber,
+            name: user.name,
+            email: user.email,
+        },
+        tokens,
+    });
+};
+
+const changePasswordController = async (req: Request, res: Response) => {
+    const data = req.body as ChangePassword;
+    if (!data.oldPassword || !data.newPassword) {
+        throw new APIError(httpStatus.BAD_REQUEST, "Old password and new password are required.");
+    }
+
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new APIError(httpStatus.UNAUTHORIZED, "Unauthorized");
+    }
+
+    await authService.changePassword(userId, data);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: "Password changed successfully.",
     });
 };
 
@@ -100,6 +157,9 @@ const logout = async (req: Request, res: Response) => {
 export const userAuth = {
     sendOtp,
     verifyOtp: verifyOtpController,
+    setPassword: setPasswordController,
+    changePassword: changePasswordController,
+    login: loginController,
     setupProfile,
     refreshTokens,
     logout,

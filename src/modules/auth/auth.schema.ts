@@ -45,3 +45,28 @@ export const RefreshTokenSchema = z.object({
     token: z.string().min(1, "Refresh token is required"),
 });
 export type RefreshToken = z.infer<typeof RefreshTokenSchema>;
+
+// 5. Login with Password
+export const LoginSchema = z.object({
+    phoneNumber: z
+        .string()
+        .min(10, "Phone number must be at least 10 digits")
+        .regex(phoneRegex, "Invalid phone format"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+});
+export type Login = z.infer<typeof LoginSchema>;
+
+// 6. Set / Reset Password
+export const SetPasswordSchema = z.object({
+    setupToken: z.string().min(1, "Setup token is required"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+});
+export type SetPassword = z.infer<typeof SetPasswordSchema>;
+
+// 7. Change Password (Authenticated)
+export const ChangePasswordSchema = z.object({
+    oldPassword: z.string().min(6, "Old password must be at least 6 characters"),
+    newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
+
