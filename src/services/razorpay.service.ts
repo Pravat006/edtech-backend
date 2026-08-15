@@ -175,6 +175,23 @@ export class RazorpayService {
     }
 
     /**
+     * Fetches all payments associated with an order from Razorpay.
+     * @param orderId - Razorpay Order ID
+     */
+    public async fetchOrderPayments(orderId: string) {
+        try {
+            const result = await this.client.orders.fetchPayments(orderId);
+            return result.items || [];
+        } catch (error: any) {
+            logger.error(`Failed to fetch payments for Razorpay order ${orderId}:`, error);
+            throw new APIError(
+                httpStatus.NOT_FOUND,
+                `Razorpay order payments not found: ${error.message}`
+            );
+        }
+    }
+
+    /**
      * Fetches details of a payment from Razorpay.
      * @param paymentId - Razorpay Payment ID
      */

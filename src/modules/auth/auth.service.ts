@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import { db } from "@/config/database";
 import { smsService } from "@/services/sms.service";
-import userService from "@/services/user.service";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import {
@@ -85,7 +84,7 @@ class AuthService {
             throw new APIError(httpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
         }
 
-        const user = await userService.getUserById(decodedToken.id);
+        const user = await db.user.findUnique({ where: { id: decodedToken.id } });
         if (!user) {
             throw new APIError(httpStatus.NOT_FOUND, "User not found");
         }

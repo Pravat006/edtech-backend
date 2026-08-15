@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { APIError } from "@/utils/APIError";
 import envVars from "@/config/envVars";
-import userService from "@/services/user.service";
+import { db } from "@/config/db";
 import { Admin, User } from "@/@types/schema";
 import { logger } from "@/config/logger";
 
@@ -43,7 +43,7 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
                 throw new APIError(401, "Invalid token payload.");
             }
             // Check if user exists
-            const user = await userService.getUserById(decoded.id);
+            const user = await db.user.findUnique({ where: { id: decoded.id } }) as User | null;
             if (!user) {
                 throw new APIError(
                     401,

@@ -15,7 +15,7 @@ class UserService {
             }
         });
         if (!user) throw new APIError(httpStatus.NOT_FOUND, "User not found");
-        
+
         // Hide sensitive fields before returning
         const { ...safeUser } = user;
         return safeUser;
@@ -36,16 +36,14 @@ class UserService {
     }
 
     public async updatePreferences(userId: string, data: UpdatePreferences) {
-        // Prisma $Enums.Goal is incompatible with our local Goal string union —
-        // we build the payload separately so the upsert args are fully typed.
+
         const subjects = (data.subjects ?? []) as unknown[];
         const goals = (data.goals ?? []) as unknown[];
 
         return await db.userPreferences.upsert({
             where: { userId },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             update: { language: data.language, subjects: subjects as any, goals: goals as any },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             create: { userId, language: data.language || "en", subjects: subjects as any, goals: goals as any },
         });
     }
@@ -68,4 +66,4 @@ class UserService {
     }
 }
 
-export const userServiceModule = new UserService();
+export const userService = new UserService();
