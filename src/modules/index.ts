@@ -4,8 +4,10 @@ import authRoutes from "./auth/auth.routes";
 import courseRoutes from "./courses/course.routes";
 import enrollmentRoutes from "./enrollments/enrollment.routes";
 import paymentRoutes from "./payments/payment.routes";
+import profileRoutes from "./profile/profile.routes";
 import publicRoutes from "./public/public.routes";
 import userRoutes from "./users/user.routes";
+import wishlistRoutes from "./wishlist/wishlist.routes";
 
 const router = Router();
 
@@ -20,6 +22,8 @@ router.use("/public", publicRoutes);
 router.use("/courses", courseRoutes);
 router.use("/enrollments", enrollmentRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/profile", profileRoutes);
+router.use("/wishlist", wishlistRoutes);
 
 export default router;
 

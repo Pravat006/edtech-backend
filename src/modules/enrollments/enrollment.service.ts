@@ -2,7 +2,7 @@ import { db } from "@/config/db";
 import { APIError } from "@/utils/APIError";
 import httpStatus from "http-status";
 import { EnrollmentQuery } from "./enrollment.schema";
-import { Prisma } from "@prisma/client";
+
 
 class EnrollmentService {
     /**
@@ -59,7 +59,7 @@ class EnrollmentService {
         const enrollment = await db.enrollment.findUnique({
             where: {
                 id: enrollmentId,
-                userId, // Security: Ensure the user actually owns this enrollment
+                userId,
             },
             include: {
                 course: {
@@ -80,7 +80,7 @@ class EnrollmentService {
                         }
                     }
                 },
-                certificate: true, // If they have completed it
+                certificate: true,
             },
         });
 

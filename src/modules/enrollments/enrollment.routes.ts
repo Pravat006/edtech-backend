@@ -6,7 +6,6 @@ import { EnrollmentQuerySchema } from "./enrollment.schema";
 
 const router = Router();
 
-// ─── User Facing Routes (Requires Authentication) ─────────────────────────────
 
 router.use(authenticateUser);
 

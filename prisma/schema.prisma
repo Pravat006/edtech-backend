@@ -56,6 +56,11 @@ model User {
   referralsMade Referral[]    @relation("ReferrerUser")
   referredBy    Referral?     @relation("RefereeUser")
 
+  address          UserAddress?
+  personalDetails  UserPersonalDetails?
+  educationDetails UserEducationDetails?
+  wishlistItems    Wishlist[]
+
   @@index([phoneNumber])
 }
 
@@ -100,6 +105,7 @@ model Course {
   reviews           Review[]
   communityMessages CommunityMessage[]
   testimonials      Testimonial[]
+  wishlistItems     Wishlist[]
 
   @@index([subject])
   @@index([language])
@@ -401,6 +407,14 @@ model MediaAsset {
   coursesWithThumbnail Course[]        @relation("CourseThumbnail")
   usersWithAvatar      User[]          @relation("UserAvatar")
   certificates         Certificate[]   @relation("CertificateMedia")
+
+  // KYC & Education document back-relations
+  aadhaarFileFor    UserPersonalDetails[]  @relation("AadhaarFile")
+  panFileFor        UserPersonalDetails[]  @relation("PanFile")
+  signatureFor      UserPersonalDetails[]  @relation("SignatureImage")
+  collegeResultFor  UserEducationDetails[] @relation("CollegeResultFile")
+  classXIIResultFor UserEducationDetails[] @relation("ClassXIIResultFile")
+  classXResultFor   UserEducationDetails[] @relation("ClassXResultFile")
 }
 
 model ReferralCode {
@@ -592,4 +606,90 @@ enum FileStatus {
   UPLOADING
   COMPLETED
   FAILED
+}
+
+model Wishlist {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId]) // A user can only wishlist a course once
+  @@index([userId])
+  @@index([courseId])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+model UserAddress {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  permanentAddress             String?
+  permanentAddressPincode      String?
+  correspondenceAddress        String?
+  correspondenceAddressPincode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserPersonalDetails {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dateOfBirth DateTime?
+  gender      Gender?
+  bloodGroup  String?
+
+  aadhaarNumber String?
+  aadhaarFileId String?
+  aadhaarFile   MediaAsset? @relation("AadhaarFile", fields: [aadhaarFileId], references: [id])
+
+  panNumber String?
+  panFileId String?
+  panFile   MediaAsset? @relation("PanFile", fields: [panFileId], references: [id])
+
+  signatureImageId String?
+  signatureImage   MediaAsset? @relation("SignatureImage", fields: [signatureImageId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserEducationDetails {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  collegeName         String?
+  collegeMarks        Decimal?    @db.Decimal(5, 2)
+  collegeResultFileId String?
+  collegeResultFile   MediaAsset? @relation("CollegeResultFile", fields: [collegeResultFileId], references: [id])
+
+  schoolName           String?
+  marksClassXII        Decimal?    @db.Decimal(5, 2)
+  classXIIResultFileId String?
+  classXIIResultFile   MediaAsset? @relation("ClassXIIResultFile", fields: [classXIIResultFileId], references: [id])
+
+  marksClassX        Decimal?    @db.Decimal(5, 2)
+  classXResultFileId String?
+  classXResultFile   MediaAsset? @relation("ClassXResultFile", fields: [classXResultFileId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

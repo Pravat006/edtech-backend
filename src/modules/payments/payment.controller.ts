@@ -39,3 +39,20 @@ export const verifyPayment = async (req: Request, res: Response) => {
         data: enrollment,
     });
 };
+
+/**
+ * GET /v1/payments/history
+ * Returns paginated payment history for the authenticated user.
+ */
+export const getPaymentHistory = async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const limit = Math.min(Number(req.query.limit) || 20, 50);
+    const cursor = req.query.cursor as string | undefined;
+
+    const result = await paymentService.getPaymentHistory(userId, limit, cursor);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        data: result,
+    });
+};

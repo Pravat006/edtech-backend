@@ -22,6 +22,12 @@ router.post(
     paymentController.verifyPayment
 );
 
+router.get(
+    "/history",
+    authenticateUser,
+    paymentController.getPaymentHistory
+);
+
 router.post(
     "/webhooks/razorpay",
     express.raw({ type: "application/json" }),

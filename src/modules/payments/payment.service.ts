@@ -440,6 +440,74 @@ class PaymentService {
             logger.info(`[WEBHOOK] Successfully processed refund for order: ${orderId}`);
         });
     }
+
+    /**
+     * GET /v1/payments/history
+     * Returns a cursor-paginated list of the user's payment history.
+     * Each item includes course summary + payment + latest transaction status.
+     */
+    public async getPaymentHistory(
+        userId: string,
+        limit: number = 20,
+        cursor?: string
+    ) {
+        const payments = await db.payment.findMany({
+            where: { userId },
+            take: limit + 1,
+            ...(cursor && {
+                skip: 1,
+                cursor: { id: cursor },
+            }),
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                amount: true,
+                currency: true,
+                status: true,
+                provider: true,
+                providerOrderId: true,
+                createdAt: true,
+                enrollment: {
+                    select: {
+                        id: true,
+                        status: true,
+                        enrolledAt: true,
+                        course: {
+                            select: {
+                                id: true,
+                                title: true,
+                                isFree: true,
+                                thumbnail: {
+                                    select: { url: true },
+                                },
+                            },
+                        },
+                    },
+                },
+                transactions: {
+                    orderBy: { createdAt: "desc" },
+                    take: 1, // Only the most recent transaction
+                    select: {
+                        id: true,
+                        type: true,
+                        status: true,
+                        amount: true,
+                        providerReferenceId: true,
+                        failureReason: true,
+                        createdAt: true,
+                    },
+                },
+            },
+        });
+
+        let nextCursor: string | undefined = undefined;
+        if (payments.length > limit) {
+            const nextItem = payments.pop();
+            nextCursor = nextItem?.id;
+        }
+
+        return { items: payments, nextCursor };
+    }
 }
 
 export const paymentService = new PaymentService();
