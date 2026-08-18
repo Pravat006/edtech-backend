@@ -12,6 +12,21 @@ class UserService {
                 wallet: true,
                 avatar: true,
                 preferences: true,
+                address: true,
+                personalDetails: {
+                    include: {
+                        aadhaarFile: { select: { url: true } },
+                        panFile: { select: { url: true } },
+                        signatureImage: { select: { url: true } },
+                    }
+                },
+                educationDetails: {
+                    include: {
+                        collegeResultFile: { select: { url: true } },
+                        classXIIResultFile: { select: { url: true } },
+                        classXResultFile: { select: { url: true } },
+                    }
+                }
             }
         });
         if (!user) throw new APIError(httpStatus.NOT_FOUND, "User not found");

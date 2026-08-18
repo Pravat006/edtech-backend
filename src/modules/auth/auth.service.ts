@@ -17,6 +17,14 @@ import jwt from "jsonwebtoken";
 import * as argon2 from "argon2";
 
 class AuthService {
+    public async checkUserExists(phoneNumber: string) {
+        const user = await db.user.findUnique({
+            where: { phoneNumber },
+            select: { id: true }
+        });
+        return !!user;
+    }
+
     public async sendOtp(phoneNumber: string) {
         try {
             return await smsService.sendOtp(phoneNumber);

@@ -32,6 +32,8 @@ db.$connect()
     });
 
 
+export const redisClient = global.redis || new RedisService();
+
 if (process.env.NODE_ENV !== "production") {
-    global.redis = redis;
+    global.redis = redisClient;
 }

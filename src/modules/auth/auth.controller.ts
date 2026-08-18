@@ -27,6 +27,15 @@ const sendOtp = async (req: Request, res: Response) => {
     });
 };
 
+const checkUserExistsController = async (req: Request, res: Response) => {
+    const { phoneNumber } = req.body;
+    if (!phoneNumber) {
+        throw new APIError(httpStatus.BAD_REQUEST, "Phone number is required.");
+    }
+    const exists = await authService.checkUserExists(phoneNumber);
+    res.status(httpStatus.OK).json({ success: true, exists });
+};
+
 const verifyOtpController = async (req: Request, res: Response) => {
     const { phoneNumber, otp } = req.body as VerifyOtp;
     if (!phoneNumber || !otp) {
@@ -155,6 +164,7 @@ const logout = async (req: Request, res: Response) => {
 };
 
 export const userAuth = {
+    checkUserExists: checkUserExistsController,
     sendOtp,
     verifyOtp: verifyOtpController,
     setPassword: setPasswordController,

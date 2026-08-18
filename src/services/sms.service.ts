@@ -1,9 +1,9 @@
-import twilio from "twilio";
-import envVars from "@/config/envVars";
+// import twilio from "twilio";
+// import envVars from "@/config/envVars";
 import { logger } from "@/config/logger";
 import { redis } from "@/config/redis";
 
-const twilioClient = twilio(envVars.TWILIO_ACCOUNT_SID, envVars.TWILIO_AUTH_TOKEN);
+// const twilioClient = twilio(envVars.TWILIO_ACCOUNT_SID, envVars.TWILIO_AUTH_TOKEN);
 
 class SmsService {
     public async sendOtp(phoneNumber: string) {
@@ -14,55 +14,41 @@ class SmsService {
                 throw new Error("Please wait 1 minute before requesting another OTP");
             }
 
-            // --- TEST NUMBER BYPASS ---
-            if (phoneNumber === "0000000000") {
-                await redis.setValue(`otp:0000000000`, "123456", 5 * 60);
-                logger.info("[MOCK SMS] OTP for 0000000000 is 123456");
-                return { expiresIn: 5 * 60, status: "pending" };
-            }
-
+            // --- DEV BYPASS: NO TWILIO ---
+            // For development/MVP without SMS service, we hardcode OTP to 1234
+            const mockOtp = "1234";
             const e164 = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
-
-            const verification = await twilioClient.verify.v2.services(envVars.TWILIO_VERIFY_SERVICE_SID)
-                .verifications
-                .create({ to: e164, channel: 'sms' });
-
+            
+            // Store the mock OTP in Redis for 5 minutes
+            await redis.setValue(`otp:${e164}`, mockOtp, 5 * 60);
             await redis.setValue(cooldownKey, "1", 60);
 
-            return { expiresIn: 5 * 60, status: verification.status };
-
+            logger.info(`[MOCK SMS] OTP for ${e164} is ${mockOtp}`);
+            return { expiresIn: 5 * 60, status: "pending" };
+            
         } catch (error: any) {
             logger.error(`Error sending OTP to ${phoneNumber}:`, error);
-            throw new Error(error.message || "Failed to send OTP via Twilio");
+            throw new Error(error.message || "Failed to send OTP");
         }
     }
 
     public async verifyOtp(phoneNumber: string, code: string) {
         try {
-            // --- TEST NUMBER BYPASS ---
-            if (phoneNumber === "0000000000") {
-                const stored = await redis.getValue(`otp:0000000000`);
-                if (stored === code) {
-                    await redis.deleteValue(`otp:0000000000`);
-                    return { success: true };
-                }
-                return { success: false, reason: "Incorrect OTP" };
-            }
-            // --------------------------
-
             const e164 = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
-            const verificationCheck = await twilioClient.verify.v2.services(envVars.TWILIO_VERIFY_SERVICE_SID)
-                .verificationChecks
-                .create({ to: e164, code });
-
-            if (verificationCheck.status === "approved") {
+            
+            // --- DEV BYPASS: NO TWILIO ---
+            const storedOtp = await redis.getValue(`otp:${e164}`);
+            
+            if (storedOtp && storedOtp === code) {
+                // OTP matches! Delete it so it can't be reused
+                await redis.deleteValue(`otp:${e164}`);
                 return { success: true };
             } else {
-                return { success: false, reason: "Incorrect or expired OTP" };
+                return { success: false, reason: "Invalid or expired OTP" };
             }
         } catch (error) {
             logger.error(`Error verifying OTP for ${phoneNumber}:`, error);
-            return { success: false, reason: "Error verifying OTP" };
+            return { success: false, reason: "Internal verification error" };
         }
     }
 }
