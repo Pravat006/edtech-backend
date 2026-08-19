@@ -2,6 +2,7 @@ import { db } from "@/config/database";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import { UpdateProfile, UpdatePreferences } from "./user.schema";
+import { cleanupOldMediaAsset } from "@/services/imagekit.service";
 
 class UserService {
     public async getProfile(userId: string) {
@@ -37,6 +38,14 @@ class UserService {
     }
 
     public async updateProfile(userId: string, data: UpdateProfile) {
+        if (data.avatarMediaId) {
+            const currentUser = await db.user.findUnique({
+                where: { id: userId },
+                select: { avatarMediaId: true }
+            });
+            cleanupOldMediaAsset(currentUser?.avatarMediaId, data.avatarMediaId);
+        }
+
         return await db.user.update({
             where: { id: userId },
             data,

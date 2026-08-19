@@ -20,9 +20,9 @@ class AuthService {
     public async checkUserExists(phoneNumber: string) {
         const user = await db.user.findUnique({
             where: { phoneNumber },
-            select: { id: true }
+            select: { password: true }
         });
-        return !!user;
+        return !!user && !!user.password;
     }
 
     public async sendOtp(phoneNumber: string) {

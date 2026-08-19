@@ -27,28 +27,29 @@ class AdminEnrollmentService {
             }),
         };
 
-        const enrollments = await db.enrollment.findMany({
-            where,
-            take: limit + 1,
-            ...(cursor && {
-                skip: 1,
-                cursor: { id: cursor },
+        const [enrollments, totalCount] = await Promise.all([
+            db.enrollment.findMany({
+                where,
+                take: limit + 1,
+                ...(cursor && {
+                    skip: 1,
+                    cursor: { id: cursor },
+                }),
+                orderBy: { enrolledAt: "desc" },
+                include: {
+                    user: { select: { id: true, name: true, email: true, phoneNumber: true } },
+                    course: { select: { id: true, title: true, price: true } },
+                    payment: { select: { id: true, status: true, provider: true, amount: true } },
+                },
             }),
-            orderBy: { enrolledAt: "desc" },
-            include: {
-                user: { select: { id: true, name: true, email: true, phoneNumber: true } },
-                course: { select: { id: true, title: true, price: true } },
-                payment: { select: { id: true, status: true, provider: true, amount: true } },
-            },
-        });
+            db.enrollment.count({ where }),
+        ]);
 
         let nextCursor: string | undefined = undefined;
         if (enrollments.length > limit) {
             const nextItem = enrollments.pop();
             nextCursor = nextItem?.id;
         }
-
-        const totalCount = await db.enrollment.count({ where });
 
         return {
             items: enrollments,

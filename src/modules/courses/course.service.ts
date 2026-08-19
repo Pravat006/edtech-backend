@@ -1,4 +1,4 @@
-import { db } from "@/config/database";
+import { db, Prisma } from "@/config/database";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import { CourseListQuery, UpdateProgress, SubmitReview } from "./course.schema";
@@ -331,65 +331,60 @@ class CourseService {
             },
         });
 
-        // Compute progress per enrolled course concurrently
-        const enrolledCourses = await Promise.all(
-            enrollments.map(async (e) => {
-                const totalLessons = e.course.modules.reduce(
-                    (acc, m) => acc + m.lessons.length,
-                    0
-                );
+        // Compute progress per enrolled course concurrently using a single query
+        const courseIds = enrollments.map(e => e.course.id);
 
-                let completedLessons = 0;
-                let lastStudiedAt: Date | null = null;
+        let progressData: any[] = [];
+        if (courseIds.length > 0) {
+            progressData = await db.$queryRaw`
+                SELECT 
+                    m."courseId",
+                    COUNT(lp.id) FILTER (WHERE lp.status = 'COMPLETED')::int as "completedLessons",
+                    MAX(lp."updatedAt") as "lastStudiedAt"
+                FROM "LessonProgress" lp
+                JOIN "Lesson" l ON lp."lessonId" = l.id
+                JOIN "Module" m ON l."moduleId" = m.id
+                WHERE lp."userId" = ${userId} AND m."courseId" IN (${Prisma.join(courseIds)})
+                GROUP BY m."courseId"
+            `;
+        }
 
-                if (totalLessons > 0) {
-                    completedLessons = await db.lessonProgress.count({
-                        where: {
-                            userId,
-                            status: "COMPLETED",
-                            lesson: { module: { courseId: e.course.id } },
-                        },
-                    });
+        const progressMap = new Map(progressData.map(p => [p.courseId, p]));
 
-                    const lastProgress = await db.lessonProgress.findFirst({
-                        where: {
-                            userId,
-                            lesson: { module: { courseId: e.course.id } },
-                        },
-                        orderBy: { updatedAt: "desc" },
-                        select: { updatedAt: true },
-                    });
+        const enrolledCourses = enrollments.map((e) => {
+            const totalLessons = e.course.modules.reduce(
+                (acc, m) => acc + m.lessons.length,
+                0
+            );
 
-                    if (lastProgress) {
-                        lastStudiedAt = lastProgress.updatedAt;
-                    }
-                }
+            const pData = progressMap.get(e.course.id);
+            const completedLessons = pData?.completedLessons || 0;
+            const lastStudiedAt = pData?.lastStudiedAt || null;
 
-                const progressPercent =
-                    totalLessons > 0
-                        ? Math.round((completedLessons / totalLessons) * 100)
-                        : 0;
+            const progressPercent =
+                totalLessons > 0
+                    ? Math.round((completedLessons / totalLessons) * 100)
+                    : 0;
 
-                return {
-                    enrollmentId: e.id,
-                    enrolledAt: e.enrolledAt,
-                    expiresAt: e.expiresAt,
-                    completedAt: e.completedAt,
-                    lastStudiedAt,
-                    progressPercent,
-                    completedLessons,
-                    totalLessons,
-                    course: {
-                        id: e.course.id,
-                        title: e.course.title,
-                        subject: e.course.subject,
-                        language: e.course.language,
-                        thumbnailUrl: e.course.thumbnail?.url ?? null,
-                        instructor: e.course.instructor ?? null,
-                    },
-                };
-            })
-        );
+            return {
+                enrollmentId: e.id,
+                enrolledAt: e.enrolledAt,
+                expiresAt: e.expiresAt,
+                completedAt: e.completedAt,
+                lastStudiedAt,
+                progressPercent,
+                completedLessons,
+                totalLessons,
+                course: {
+                    id: e.course.id,
+                    title: e.course.title,
+                    subject: e.course.subject,
+                    language: e.course.language,
+                    thumbnailUrl: e.course.thumbnail?.url ?? null,
+                    instructor: e.course.instructor ?? null,
+                },
+            };
+        });
 
         return enrolledCourses;
     }
@@ -556,9 +551,9 @@ class CourseService {
         // 2. Get lesson details to check drip status
         const lesson = await db.lesson.findFirst({
             where: { id: lessonId, module: { courseId } },
-            select: { 
-                id: true, 
-                unlockAfterDays: true, 
+            select: {
+                id: true,
+                unlockAfterDays: true,
                 isFreePreview: true,
                 contents: {
                     orderBy: { order: "asc" },
