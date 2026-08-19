@@ -34,15 +34,15 @@ export const UpdatePersonalDetailsSchema = z.object({
         .trim()
         .regex(/^\d{12}$/, "Aadhaar number must be exactly 12 digits")
         .optional(),
-    aadhaarFileId: z.string().uuid("Invalid media asset ID").optional(),
+    aadhaarFileId: z.string().uuid("Invalid media asset ID").nullable().optional(),
     panNumber: z
         .string()
         .trim()
         .toUpperCase()
         .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN number format")
         .optional(),
-    panFileId: z.string().uuid("Invalid media asset ID").optional(),
-    signatureImageId: z.string().uuid("Invalid media asset ID").optional(),
+    panFileId: z.string().uuid("Invalid media asset ID").nullable().optional(),
+    signatureImageId: z.string().uuid("Invalid media asset ID").nullable().optional(),
 });
 
 export type UpdatePersonalDetails = z.infer<typeof UpdatePersonalDetailsSchema>;
@@ -56,14 +56,14 @@ const percentageField = z.coerce
 export const UpdateEducationDetailsSchema = z.object({
     collegeName: z.string().trim().optional(),
     collegeMarks: percentageField,
-    collegeResultFileId: z.string().uuid("Invalid media asset ID").optional(),
+    collegeResultFileId: z.string().uuid("Invalid media asset ID").nullable().optional(),
 
     schoolName: z.string().trim().optional(),
     marksClassXII: percentageField,
-    classXIIResultFileId: z.string().uuid("Invalid media asset ID").optional(),
+    classXIIResultFileId: z.string().uuid("Invalid media asset ID").nullable().optional(),
 
     marksClassX: percentageField,
-    classXResultFileId: z.string().uuid("Invalid media asset ID").optional(),
+    classXResultFileId: z.string().uuid("Invalid media asset ID").nullable().optional(),
 });
 
 export type UpdateEducationDetails = z.infer<typeof UpdateEducationDetailsSchema>;

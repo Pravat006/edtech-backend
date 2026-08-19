@@ -7,7 +7,7 @@ import { cleanupOldMediaAsset } from "@/services/imagekit.service";
 
 async function validateMediaAsset(
     id: string,
-    expectedType: MediaType,
+    expectedTypes: MediaType | MediaType[],
     fieldLabel: string
 ): Promise<void> {
     const asset = await db.mediaAsset.findUnique({
@@ -22,10 +22,12 @@ async function validateMediaAsset(
         );
     }
 
-    if (asset.type !== expectedType) {
+    const typesArr = Array.isArray(expectedTypes) ? expectedTypes : [expectedTypes];
+
+    if (!typesArr.includes(asset.type)) {
         throw new APIError(
             httpStatus.BAD_REQUEST,
-            `${fieldLabel}: Expected a ${expectedType} file, but got ${asset.type}.`
+            `${fieldLabel}: Expected ${typesArr.join(" or ")} file, but got ${asset.type}.`
         );
     }
 }
@@ -58,7 +60,7 @@ class ProfileService {
     }
 
     public async upsertPersonalDetails(userId: string, data: UpdatePersonalDetails) {
-        // Validate file types before saving
+        // Validate file types before saving - strictly PDF required for Aadhaar & PAN
         await Promise.all([
             data.aadhaarFileId && validateMediaAsset(data.aadhaarFileId, "PDF", "Aadhaar file"),
             data.panFileId && validateMediaAsset(data.panFileId, "PDF", "PAN file"),
@@ -102,7 +104,7 @@ class ProfileService {
     }
 
     public async upsertEducationDetails(userId: string, data: UpdateEducationDetails) {
-        // Validate file types before saving — all result files must be PDFs
+        // Validate file types before saving — strictly PDF required for all result files
         await Promise.all([
             data.collegeResultFileId && validateMediaAsset(data.collegeResultFileId, "PDF", "College result file"),
             data.classXIIResultFileId && validateMediaAsset(data.classXIIResultFileId, "PDF", "Class XII result file"),
