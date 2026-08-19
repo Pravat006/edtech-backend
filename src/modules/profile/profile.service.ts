@@ -3,6 +3,7 @@ import { APIError } from "@/utils/APIError";
 import httpStatus from "http-status";
 import { MediaType } from "@/../../generated/prisma";
 import { UpdateAddress, UpdatePersonalDetails, UpdateEducationDetails } from "./profile.schema";
+import { cleanupOldMediaAsset } from "@/services/imagekit.service";
 
 async function validateMediaAsset(
     id: string,
@@ -64,6 +65,17 @@ class ProfileService {
             data.signatureImageId && validateMediaAsset(data.signatureImageId, "IMAGE", "Signature image"),
         ]);
 
+        const currentDetails = await db.userPersonalDetails.findUnique({
+            where: { userId },
+            select: { aadhaarFileId: true, panFileId: true, signatureImageId: true }
+        });
+
+        if (currentDetails) {
+            cleanupOldMediaAsset(currentDetails.aadhaarFileId, data.aadhaarFileId);
+            cleanupOldMediaAsset(currentDetails.panFileId, data.panFileId);
+            cleanupOldMediaAsset(currentDetails.signatureImageId, data.signatureImageId);
+        }
+
         return db.userPersonalDetails.upsert({
             where: { userId },
             update: data,
@@ -96,6 +108,17 @@ class ProfileService {
             data.classXIIResultFileId && validateMediaAsset(data.classXIIResultFileId, "PDF", "Class XII result file"),
             data.classXResultFileId && validateMediaAsset(data.classXResultFileId, "PDF", "Class X result file"),
         ]);
+
+        const currentEducation = await db.userEducationDetails.findUnique({
+            where: { userId },
+            select: { collegeResultFileId: true, classXIIResultFileId: true, classXResultFileId: true }
+        });
+
+        if (currentEducation) {
+            cleanupOldMediaAsset(currentEducation.collegeResultFileId, data.collegeResultFileId);
+            cleanupOldMediaAsset(currentEducation.classXIIResultFileId, data.classXIIResultFileId);
+            cleanupOldMediaAsset(currentEducation.classXResultFileId, data.classXResultFileId);
+        }
 
         return db.userEducationDetails.upsert({
             where: { userId },

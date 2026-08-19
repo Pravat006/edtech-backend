@@ -1,8 +1,10 @@
 import S3Service from "@/services/s3.service";
+import { imagekitService } from "@/services/imagekit.service";
 import { APIError } from "@/utils/APIError";
 import { db } from "@/config/database";
 import { v4 as uuidv4 } from "uuid";
 import { MediaType } from "../../../generated/prisma";
+import { ImageKitCompleteSchema } from "./upload.schema";
 
 type UploadOptions = {
     filename: string;
@@ -13,6 +15,29 @@ type UploadOptions = {
 }
 
 const s3Service = new S3Service();
+
+export const getImageKitAuthParams = () => {
+    return imagekitService.getAuthenticationParameters();
+};
+
+export const completeImageKitUpload = async (userId: string, data: ImageKitCompleteSchema) => {
+    const mediaType = getMediaType(data.mimeType);
+
+    const mediaAsset = await db.mediaAsset.create({
+        data: {
+            type: mediaType,
+            mimeType: data.mimeType,
+            storageKey: data.fileId, // We use ImageKit's fileId as our storageKey
+            provider: "IMAGEKIT",
+            sizeBytes: data.size,
+            uploadStrategy: "SINGLE_PART", // ImageKit SDK handles its own chunking internally
+            uploadStatus: "COMPLETED",
+            url: data.url
+        }
+    });
+
+    return mediaAsset;
+};
 
 const getMediaType = (mimeType: string): MediaType => {
     if (mimeType.startsWith('image/')) return 'IMAGE';

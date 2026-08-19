@@ -6,8 +6,11 @@ import {
     abortUpload,
     complete,
     initiateUpload,
-    getMultipartUrls
+    getMultipartUrls,
+    getImageKitAuthParams,
+    completeImageKitUpload
 } from "./upload.service";
+import { imageKitCompleteSchema } from "./upload.schema";
 
 export const initiateUploadController = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -55,6 +58,37 @@ export const abortUploadController = async (req: Request, res: Response, next: N
         await abortUpload(fileId);
         res.status(status.OK).json(
             new ApiResponse(status.OK, "file upload aborted successfully")
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getImageKitAuthParamsController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
+
+        const authParams = getImageKitAuthParams();
+        
+        res.status(status.OK).json(
+            new ApiResponse(status.OK, "ImageKit auth params generated successfully", authParams)
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const completeImageKitUploadController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
+
+        const parsedData = imageKitCompleteSchema.parse(req.body);
+        const mediaAsset = await completeImageKitUpload(userId, parsedData);
+
+        res.status(status.OK).json(
+            new ApiResponse(status.OK, "ImageKit upload registered successfully", mediaAsset)
         );
     } catch (error) {
         next(error);

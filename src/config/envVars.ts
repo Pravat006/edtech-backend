@@ -46,6 +46,11 @@ const EnvConfigSchema = z.object({
     RAZORPAY_KEY_ID: z.string().trim().default("rzp_test_dummykey"),
     RAZORPAY_KEY_SECRET: z.string().trim().default("dummy_secret"),
     RAZORPAY_WEBHOOK_SECRET: z.string().trim().default("dummy_webhook_secret"),
+
+    IMAGEKIT_PUBLIC_KEY: z.string().trim().min(1).default("dummy_public_key"),
+    IMAGEKIT_PRIVATE_KEY: z.string().trim().min(1).default("dummy_private_key"),
+    IMAGEKIT_URL_ENDPOINT: z.string().trim().min(1).url().default("https://ik.imagekit.io/dummy"),
+    IMAGEKIT_WEBHOOK_SECRET: z.string().trim().optional(),
 });
 
 // Define the config type using Zod inference
@@ -77,6 +82,10 @@ const rawConfig = {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
     RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+    IMAGEKIT_PUBLIC_KEY: process.env.IMAGEKIT_PUBLIC_KEY,
+    IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
+    IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
+    IMAGEKIT_WEBHOOK_SECRET: process.env.IMAGEKIT_WEBHOOK_SECRET,
 };
 
 // Validate and parse configuration
@@ -132,7 +141,10 @@ export const {
     RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET,
     RAZORPAY_WEBHOOK_SECRET,
-
+    IMAGEKIT_PUBLIC_KEY,
+    IMAGEKIT_PRIVATE_KEY,
+    IMAGEKIT_URL_ENDPOINT,
+    IMAGEKIT_WEBHOOK_SECRET,
 } = envVars;
 
 export default envVars;

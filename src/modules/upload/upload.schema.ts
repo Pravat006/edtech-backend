@@ -20,7 +20,19 @@ export const abortUploadSchema = z.object({
     fileId: z.string().cuid("Invalid File ID")
 });
 
+export const imageKitCompleteSchema = z.object({
+    fileId: z.string().min(1, "ImageKit File ID is required"),
+    url: z.string().url("Valid URL is required"),
+    name: z.string().min(1, "Name is required"),
+    size: z.number().nonnegative(),
+    mimeType: z.string().min(1, "Mime type is required"),
+    filePath: z.string().min(1, "File path is required"),
+    height: z.number().optional(),
+    width: z.number().optional()
+});
+
 export type InitiateUploadSchema = z.infer<typeof initiateUploadSchema>;
 export type CompleteUploadPartSchema = z.infer<typeof completeUploadPartSchema>;
 export type CompleteUploadSchema = z.infer<typeof completeUploadSchema>;
 export type AbortUploadSchema = z.infer<typeof abortUploadSchema>;
+export type ImageKitCompleteSchema = z.infer<typeof imageKitCompleteSchema>;
