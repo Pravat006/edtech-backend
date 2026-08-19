@@ -67,3 +67,12 @@ export const logout = async (req: Request, res: Response) => {
         message: "Logged out successfully",
     });
 };
+
+export const acceptInvite = async (req: Request, res: Response) => {
+    const result = await adminAuthService.acceptInvite(req.body);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: result.message,
+    });
+};

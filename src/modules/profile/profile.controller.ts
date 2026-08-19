@@ -63,3 +63,12 @@ export const updateEducationDetails = async (req: Request, res: Response) => {
         data,
     });
 };
+
+export const reviewDocumentVerification = async (req: Request, res: Response) => {
+    const data = await profileService.reviewDocumentVerification(req.body);
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: `Student ${data.documentType} verification set to ${data.status}.`,
+        data,
+    });
+};

@@ -68,6 +68,42 @@ class AdminAuthService {
             // Ignore
         }
     }
+
+    public async acceptInvite(data: { token: string; password: string }) {
+        let email: string | undefined;
+        try {
+            // Attempt decoding token if passed as encoded token
+            const decoded = JSON.parse(Buffer.from(data.token, "base64").toString("utf-8"));
+            email = decoded.email;
+        } catch {
+            // Fallback: token string used directly
+            email = data.token;
+        }
+
+        const admin = await db.admin.findFirst({
+            where: {
+                OR: [
+                    { email: email },
+                    { id: data.token },
+                ],
+            },
+        });
+
+        if (!admin) {
+            throw new APIError(httpStatus.BAD_REQUEST, "Invalid or expired invitation token.");
+        }
+
+        const hashedPassword = await argon2.hash(data.password);
+
+        await db.admin.update({
+            where: { id: admin.id },
+            data: {
+                password: hashedPassword,
+            },
+        });
+
+        return { message: "Account activated successfully. You can now log in." };
+    }
 }
 
 export const adminAuthService = new AdminAuthService();

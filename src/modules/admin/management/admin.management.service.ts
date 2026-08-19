@@ -4,6 +4,8 @@ import { APIError } from "@/utils/APIError";
 import httpStatus from "http-status";
 import { CreateSubAdmin } from "./admin.management.schema";
 
+import { emailService } from "@/modules/email/email.service";
+
 class AdminManagementService {
     public async createSubAdmin(data: CreateSubAdmin) {
         const existingAdmin = await db.admin.findUnique({ where: { email: data.email } });
@@ -21,6 +23,15 @@ class AdminManagementService {
                 role: "SUB"
             }
         });
+
+        // Trigger invitation email in background (non-blocking)
+        const adminFrontendUrl = process.env.ADMIN_FRONTEND_URL || "http://localhost:3000";
+        emailService.sendSubAdminInvite({
+            to: newAdmin.email,
+            name: newAdmin.name,
+            acceptUrl: `${adminFrontendUrl}/login`,
+            permissions: ["courses:write", "verifications:write"],
+        }).catch(() => {});
 
         const { password, ...safeAdmin } = newAdmin;
         return safeAdmin;

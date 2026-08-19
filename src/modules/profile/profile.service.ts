@@ -133,6 +133,45 @@ class ProfileService {
             },
         });
     }
+
+    /**
+     * Admin review for student document verification (triggers Brevo email notice)
+     */
+    public async reviewDocumentVerification(params: {
+        userId: string;
+        documentType: string;
+        status: "APPROVED" | "REJECTED";
+        reason?: string;
+    }) {
+        const user = await db.user.findUnique({
+            where: { id: params.userId },
+            select: { id: true, name: true, email: true, phoneNumber: true },
+        });
+
+        if (!user) {
+            throw new APIError(httpStatus.NOT_FOUND, "Student user not found.");
+        }
+
+        // Trigger email notice if user has an email on record
+        if (user.email) {
+            const emailServiceModule = await import("@/modules/email/email.service");
+            emailServiceModule.emailService.sendDocumentVerificationNotice({
+                to: user.email,
+                studentName: user.name || "Learner",
+                documentType: params.documentType,
+                status: params.status,
+                reason: params.reason,
+            }).catch(() => {});
+        }
+
+        return {
+            success: true,
+            userId: user.id,
+            documentType: params.documentType,
+            status: params.status,
+            notifiedEmail: user.email || null,
+        };
+    }
 }
 
 export const profileService = new ProfileService();

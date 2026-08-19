@@ -44,3 +44,15 @@ export const requireSuperAdmin = (req: Request, res: Response, next: NextFunctio
 
     next();
 };
+
+export const requirePermission = (permission: string) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.admin) {
+            return next(new APIError(httpStatus.UNAUTHORIZED, "Admin not authenticated"));
+        }
+        if (req.admin.role === "SUPER") {
+            return next();
+        }
+        next();
+    };
+};
