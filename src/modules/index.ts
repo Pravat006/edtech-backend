@@ -6,6 +6,7 @@ import enrollmentRoutes from "./enrollments/enrollment.routes";
 import paymentRoutes from "./payments/payment.routes";
 import profileRoutes from "./profile/profile.routes";
 import publicRoutes from "./public/public.routes";
+import { uploadRouter } from "./upload/upload.route";
 import userRoutes from "./users/user.routes";
 import wishlistRoutes from "./wishlist/wishlist.routes";
 
@@ -24,6 +25,7 @@ router.use("/enrollments", enrollmentRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/profile", profileRoutes);
 router.use("/wishlist", wishlistRoutes);
+router.use("/upload", uploadRouter);
 
 export default router;
 

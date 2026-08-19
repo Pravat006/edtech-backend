@@ -64,6 +64,8 @@ export const abortUploadController = async (req: Request, res: Response, next: N
     }
 };
 
+import envVars from "@/config/envVars";
+
 export const getImageKitAuthParamsController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?.id;
@@ -72,7 +74,10 @@ export const getImageKitAuthParamsController = async (req: Request, res: Respons
         const authParams = getImageKitAuthParams();
         
         res.status(status.OK).json(
-            new ApiResponse(status.OK, "ImageKit auth params generated successfully", authParams)
+            new ApiResponse(status.OK, "ImageKit auth params generated successfully", {
+                ...authParams,
+                publicKey: envVars.IMAGEKIT_PUBLIC_KEY,
+            })
         );
     } catch (error) {
         next(error);

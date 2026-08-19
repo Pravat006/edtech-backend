@@ -12,7 +12,6 @@ const router = Router();
 
 router.use(authenticateUser);
 
-// ─── Address ──────────────────────────────────────────────────────────────────
 router.get("/address", profileController.getAddress);
 router.patch(
     "/address",
@@ -20,7 +19,6 @@ router.patch(
     profileController.updateAddress
 );
 
-// ─── Personal Details ─────────────────────────────────────────────────────────
 router.get("/personal", profileController.getPersonalDetails);
 router.patch(
     "/personal",
@@ -28,7 +26,6 @@ router.patch(
     profileController.updatePersonalDetails
 );
 
-// ─── Education Details ────────────────────────────────────────────────────────
 router.get("/education", profileController.getEducationDetails);
 router.patch(
     "/education",
