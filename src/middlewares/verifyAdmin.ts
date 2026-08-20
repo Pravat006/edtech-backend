@@ -19,14 +19,14 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
 
         const admin = await db.admin.findUnique({
             where: { id: decoded.id },
-            select: { id: true, role: true, name: true, email: true }
+            select: { id: true, role: true, name: true, email: true, permissions: true }
         });
 
         if (!admin) {
             return next(new APIError(httpStatus.UNAUTHORIZED, "Admin account no longer exists"));
         }
 
-        req.admin = admin;
+        req.admin = admin as any;
         next();
     } catch (error) {
         next(new APIError(httpStatus.UNAUTHORIZED, "Token expired or invalid"));
@@ -53,6 +53,12 @@ export const requirePermission = (permission: string) => {
         if (req.admin.role === "SUPER") {
             return next();
         }
-        next();
+
+        const adminPermissions = (req.admin as any).permissions || [];
+        if (adminPermissions.includes(permission)) {
+            return next();
+        }
+
+        return next(new APIError(httpStatus.FORBIDDEN, `Missing required permission: ${permission}`));
     };
 };

@@ -76,3 +76,14 @@ export const acceptInvite = async (req: Request, res: Response) => {
         message: result.message,
     });
 };
+
+export const getMe = async (req: Request, res: Response) => {
+    if (!req.admin) {
+        throw new APIError(httpStatus.UNAUTHORIZED, "Not authenticated");
+    }
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        data: req.admin,
+    });
+};

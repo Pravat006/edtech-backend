@@ -19,6 +19,18 @@ export const listSubAdmins = async (req: Request, res: Response) => {
     res.status(httpStatus.OK).json({ success: true, data: admins });
 };
 
+export const updateSubAdminPermissions = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { permissions } = req.body;
+    const updated = await adminManagementService.updateSubAdminPermissions(id, permissions);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: "Sub-admin permissions updated successfully",
+        data: updated,
+    });
+};
+
 export const revokeSubAdmin = async (req: Request, res: Response) => {
     const { id } = req.params;
     await adminManagementService.revokeSubAdmin(id);

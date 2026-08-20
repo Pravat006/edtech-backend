@@ -11,10 +11,28 @@ const app = express();
 httpLogger(app);
 
 
+const allowedOrigins = [
+    process.env.ADMIN_ORIGIN || "http://localhost:3001",
+    process.env.FRONTEND_ORIGIN || "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3000",
+];
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({ origin: process.env.ADMIN_ORIGIN, credentials: true }));
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(null, true); // Allow dev origins dynamically
+            }
+        },
+        credentials: true,
+    })
+);
 
 app.use(helmet());
 app.use(rateLimiter);

@@ -8,17 +8,20 @@ import { logger } from "@/config/logger";
 import { redis } from "@/config/redis";
 
 export const authenticateAdmin = async (req: Request, res: Response, next: NextFunction) => {
-        const authHeader = req.headers.authorization;
+        let token: string | undefined = req.cookies?.admin_access_token;
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            logger.warn("[ADMIN_MIDDLEWARE] No Bearer token found in Authorization header");
+        if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+            token = req.headers.authorization.split(" ")[1];
+        }
+
+        if (!token) {
+            logger.warn("[ADMIN_MIDDLEWARE] No authentication token found in cookies or Authorization header");
             throw new APIError(
                 401,
-                "Authentication required. Please provide a valid token."
+                "Authentication required. Please log in."
             );
         }
 
-        const token = authHeader.split(" ")[1];
 
         try {
             const decoded = jwt.verify(

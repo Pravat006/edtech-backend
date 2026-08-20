@@ -67,3 +67,13 @@ export const UpdateEducationDetailsSchema = z.object({
 });
 
 export type UpdateEducationDetails = z.infer<typeof UpdateEducationDetailsSchema>;
+
+export const ReviewDocumentVerificationSchema = z.object({
+    userId: z.string().uuid("Invalid user ID"),
+    documentType: z.string().min(1, "Document type is required"),
+    status: z.enum(["APPROVED", "REJECTED"]),
+    reason: z.string().trim().optional(),
+});
+
+export type ReviewDocumentVerification = z.infer<typeof ReviewDocumentVerificationSchema>;
+
