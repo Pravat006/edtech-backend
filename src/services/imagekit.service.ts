@@ -78,6 +78,21 @@ export const cleanupOldMediaAsset = async (
         const oldAsset = await db.mediaAsset.findUnique({ where: { id: oldAssetId } });
         if (!oldAsset) return;
 
+        // Ensure the old asset is not still referenced by another course or lesson block
+        const isCourseUsing = await db.course.findFirst({
+            where: { thumbnailMediaId: oldAssetId },
+            select: { id: true },
+        });
+        const isLessonContentUsing = await db.lessonContent.findFirst({
+            where: { mediaId: oldAssetId },
+            select: { id: true },
+        });
+
+        if (isCourseUsing || isLessonContentUsing) {
+            // Still in use elsewhere, skip deletion
+            return;
+        }
+
         if (oldAsset.provider === "IMAGEKIT" && oldAsset.storageKey) {
             try {
                 await imagekitService.deleteFile(oldAsset.storageKey);

@@ -9,8 +9,30 @@ import {
     CreateLessonSchema,
     UpdateLessonSchema,
     CreateLessonContentSchema,
+    UpdateLessonContentSchema,
+    ReorderSchema,
 } from "./course.schema";
 import { APIError } from "@/utils/APIError";
+
+export const listCourses = async (req: Request, res: Response) => {
+    const { search, status, page, limit } = req.query;
+    
+    const result = await adminCourseService.listCourses(
+        req.admin!.id,
+        req.admin!.role,
+        {
+            search: search as string,
+            status: status as string,
+            page: page ? parseInt(page as string, 10) : 1,
+            limit: limit ? parseInt(limit as string, 10) : 10,
+        }
+    );
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        data: result,
+    });
+};
 
 export const createCourse = async (req: Request, res: Response) => {
     const parsed = CreateCourseSchema.safeParse(req.body);
@@ -214,6 +236,31 @@ export const addLessonContent = async (req: Request, res: Response) => {
     });
 };
 
+export const updateLessonContent = async (req: Request, res: Response) => {
+    const { courseId, moduleId, lessonId, contentId } = req.params;
+
+    const parsed = UpdateLessonContentSchema.safeParse(req.body);
+    if (!parsed.success) {
+        throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
+    }
+
+    const content = await adminCourseService.updateLessonContent(
+        courseId,
+        moduleId,
+        lessonId,
+        contentId,
+        req.admin!.id,
+        req.admin!.role,
+        parsed.data
+    );
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: "Lesson content block updated successfully",
+        data: content,
+    });
+};
+
 export const deleteLessonContent = async (req: Request, res: Response) => {
     const { courseId, moduleId, lessonId, contentId } = req.params;
 
@@ -261,4 +308,52 @@ export const getCoursePreview = async (req: Request, res: Response) => {
         previewMode: true,
         data: course,
     });
+};
+
+export const reorderModules = async (req: Request, res: Response) => {
+    const { courseId } = req.params;
+    const parsed = ReorderSchema.safeParse(req.body);
+    if (!parsed.success) {
+        throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
+    }
+    const result = await adminCourseService.reorderModules(
+        courseId,
+        req.admin!.id,
+        req.admin!.role,
+        parsed.data.orders
+    );
+    res.status(httpStatus.OK).json({ success: true, message: result.message });
+};
+
+export const reorderLessons = async (req: Request, res: Response) => {
+    const { courseId, moduleId } = req.params;
+    const parsed = ReorderSchema.safeParse(req.body);
+    if (!parsed.success) {
+        throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
+    }
+    const result = await adminCourseService.reorderLessons(
+        courseId,
+        moduleId,
+        req.admin!.id,
+        req.admin!.role,
+        parsed.data.orders
+    );
+    res.status(httpStatus.OK).json({ success: true, message: result.message });
+};
+
+export const reorderLessonContents = async (req: Request, res: Response) => {
+    const { courseId, moduleId, lessonId } = req.params;
+    const parsed = ReorderSchema.safeParse(req.body);
+    if (!parsed.success) {
+        throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
+    }
+    const result = await adminCourseService.reorderLessonContents(
+        courseId,
+        moduleId,
+        lessonId,
+        req.admin!.id,
+        req.admin!.role,
+        parsed.data.orders
+    );
+    res.status(httpStatus.OK).json({ success: true, message: result.message });
 };

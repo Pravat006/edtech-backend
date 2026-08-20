@@ -68,7 +68,7 @@ import envVars from "@/config/envVars";
 
 export const getImageKitAuthParamsController = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.id || req.admin?.id;
         if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
 
         const authParams = getImageKitAuthParams();
@@ -86,7 +86,7 @@ export const getImageKitAuthParamsController = async (req: Request, res: Respons
 
 export const completeImageKitUploadController = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?.id || req.admin?.id;
         if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
 
         const parsedData = imageKitCompleteSchema.parse(req.body);

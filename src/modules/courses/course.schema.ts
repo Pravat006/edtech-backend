@@ -15,6 +15,7 @@ export const CreateCourseSchema = z.object({
     accessDurationDays: z.number().int().positive().optional(),
     discountPrice: z.number().nonnegative().optional(),
     discountValidUntil: z.coerce.date().optional(),
+    thumbnailMediaId: z.string().optional(),
 });
 export type CreateCourse = z.infer<typeof CreateCourseSchema>;
 
@@ -80,3 +81,13 @@ export const UpdateProgressSchema = z.object({
     status: ProgressStatusEnum,
 });
 export type UpdateProgress = z.infer<typeof UpdateProgressSchema>;
+
+export const ReorderSchema = z.object({
+    orders: z.array(
+        z.object({
+            id: z.string().uuid(),
+            order: z.number().int().positive(),
+        })
+    ).min(1, "At least one order item is required"),
+});
+export type ReorderPayload = z.infer<typeof ReorderSchema>;

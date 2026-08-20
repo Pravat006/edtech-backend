@@ -6,6 +6,7 @@ const router = Router();
 
 router.use(verifyAdmin);
 
+router.get("/", adminCourseController.listCourses);
 router.post("/", adminCourseController.createCourse);
 router.put("/:courseId", adminCourseController.updateCourse);
 router.patch("/:courseId/publish", adminCourseController.togglePublishCourse);
@@ -27,9 +28,20 @@ router.post(
     "/:courseId/modules/:moduleId/lessons/:lessonId/contents",
     adminCourseController.addLessonContent
 );
+router.patch(
+    "/:courseId/modules/:moduleId/lessons/:lessonId/contents/:contentId",
+    adminCourseController.updateLessonContent
+);
 router.delete(
     "/:courseId/modules/:moduleId/lessons/:lessonId/contents/:contentId",
     adminCourseController.deleteLessonContent
+);
+
+router.patch("/:courseId/modules/reorder", adminCourseController.reorderModules);
+router.patch("/:courseId/modules/:moduleId/lessons/reorder", adminCourseController.reorderLessons);
+router.patch(
+    "/:courseId/modules/:moduleId/lessons/:lessonId/contents/reorder",
+    adminCourseController.reorderLessonContents
 );
 
 router.get("/:courseId/analytics", adminCourseController.getCourseAnalytics);

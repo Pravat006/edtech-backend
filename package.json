@@ -6,7 +6,11 @@
         "dev": "cross-env NODE_ENV=development npx nodemon -r module-alias/register src/index.ts",
         "build": "tsc",
         "start": "cross-env NODE_ENV=production node -r module-alias/register dist/index.js",
+        "seed": "npx tsx prisma/seed.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "prisma": {
+        "seed": "npx tsx prisma/seed.ts"
     },
     "_moduleAliases": {
         "@": "dist"

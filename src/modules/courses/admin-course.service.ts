@@ -1,4 +1,5 @@
 import { db } from "@/config/database";
+import { cleanupOldMediaAsset } from "@/services/imagekit.service";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import {
@@ -9,9 +10,111 @@ import {
     CreateLesson,
     UpdateLesson,
     CreateLessonContent,
+    UpdateLessonContent,
 } from "./course.schema";
 
 class AdminCourseService {
+    /**
+     * GET /v1/admin/courses
+     * Fetches all courses with counts for modules, lessons, and enrollments.
+     */
+    public async listCourses(adminId: string, role: string, filters?: { search?: string; status?: string; page?: number; limit?: number }) {
+        const whereClause: any = {};
+
+        if (filters?.search) {
+            whereClause.title = { contains: filters.search, mode: "insensitive" };
+        }
+
+        if (filters?.status && filters.status !== "all") {
+            whereClause.isPublished = filters.status === "published";
+        }
+
+        const page = filters?.page || 1;
+        const limit = filters?.limit || 10;
+        const skip = (page - 1) * limit;
+
+        const [total, courses] = await Promise.all([
+            db.course.count({ where: whereClause }),
+            db.course.findMany({
+                where: whereClause,
+                select: {
+                    id: true,
+                    title: true,
+                    description: true,
+                    subject: true,
+                    language: true,
+                    goals: true,
+                    price: true,
+                    discountPrice: true,
+                    discountValidUntil: true,
+                    isFree: true,
+                    accessDurationDays: true,
+                    isPublished: true,
+                    thumbnailMediaId: true,
+                    createdAt: true,
+                    instructor: {
+                        select: { id: true, name: true, email: true },
+                    },
+                    thumbnail: {
+                        select: { id: true, url: true, storageKey: true, mimeType: true },
+                    },
+                    _count: {
+                        select: {
+                            modules: true,
+                            enrollments: true,
+                        },
+                    },
+                    modules: {
+                        select: {
+                            _count: {
+                                select: {
+                                    lessons: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { createdAt: "desc" },
+                skip,
+                take: limit,
+            })
+        ]);
+
+        const formattedCourses = courses.map(course => {
+            const lessonsCount = course.modules.reduce((sum, mod) => sum + mod._count.lessons, 0);
+            return {
+                id: course.id,
+                title: course.title,
+                description: course.description,
+                subject: course.subject,
+                language: course.language,
+                goals: course.goals,
+                price: course.price,
+                discountPrice: course.discountPrice,
+                discountValidUntil: course.discountValidUntil,
+                isFree: course.isFree,
+                accessDurationDays: course.accessDurationDays,
+                isPublished: course.isPublished,
+                thumbnailMediaId: course.thumbnailMediaId,
+                thumbnail: course.thumbnail,
+                createdAt: course.createdAt,
+                instructor: course.instructor,
+                modulesCount: course._count.modules,
+                lessonsCount: lessonsCount,
+                enrollmentsCount: course._count.enrollments,
+            };
+        });
+
+        return {
+            courses: formattedCourses,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            }
+        };
+    }
     /**
      * POST /v1/admin/courses
      * Creates a new course draft assigned to the logged-in instructor/admin.
@@ -30,6 +133,7 @@ class AdminCourseService {
                 accessDurationDays: data.accessDurationDays,
                 discountPrice: data.discountPrice,
                 discountValidUntil: data.discountValidUntil,
+                thumbnailMediaId: data.thumbnailMediaId,
                 instructorId: adminId,
                 isPublished: false,
             },
@@ -69,13 +173,6 @@ class AdminCourseService {
             throw new APIError(httpStatus.NOT_FOUND, "Course not found");
         }
 
-        if (role !== "SUPER" && course.instructorId !== adminId) {
-            throw new APIError(
-                httpStatus.FORBIDDEN,
-                "You do not have permission to modify this course"
-            );
-        }
-
         return course;
     }
 
@@ -91,11 +188,24 @@ class AdminCourseService {
     ) {
         await this.verifyCourseOwnership(courseId, adminId, role);
 
+        const existingCourse = await db.course.findUnique({
+            where: { id: courseId },
+            select: { thumbnailMediaId: true },
+        });
+
+        if (
+            data.thumbnailMediaId !== undefined &&
+            existingCourse?.thumbnailMediaId &&
+            existingCourse.thumbnailMediaId !== data.thumbnailMediaId
+        ) {
+            await cleanupOldMediaAsset(existingCourse.thumbnailMediaId, data.thumbnailMediaId);
+        }
+
         const updatedCourse = await db.course.update({
             where: { id: courseId },
             data: {
                 ...(data.title && { title: data.title }),
-                ...(data.description && { description: data.description }),
+                ...(data.description !== undefined && { description: data.description }),
                 ...(data.subject && { subject: data.subject as any }),
                 ...(data.language && { language: data.language }),
                 ...(data.goals && { goals: data.goals as any }),
@@ -109,6 +219,9 @@ class AdminCourseService {
                 }),
                 ...(data.discountValidUntil !== undefined && {
                     discountValidUntil: data.discountValidUntil,
+                }),
+                ...(data.thumbnailMediaId !== undefined && {
+                    thumbnailMediaId: data.thumbnailMediaId,
                 }),
             },
             select: {
@@ -124,9 +237,13 @@ class AdminCourseService {
                 isFree: true,
                 accessDurationDays: true,
                 isPublished: true,
+                thumbnailMediaId: true,
                 updatedAt: true,
                 instructor: {
                     select: { id: true, name: true, email: true },
+                },
+                thumbnail: {
+                    select: { id: true, url: true, storageKey: true, mimeType: true },
                 },
             },
         });
@@ -208,11 +325,27 @@ class AdminCourseService {
     ) {
         await this.verifyCourseOwnership(courseId, adminId, role);
 
+        // Auto-resolve order conflicts
+        let moduleOrder = data.order;
+        const existingModuleWithOrder = await db.module.findFirst({
+            where: { courseId, order: moduleOrder },
+            select: { id: true },
+        });
+
+        if (!moduleOrder || existingModuleWithOrder) {
+            const maxModule = await db.module.findFirst({
+                where: { courseId },
+                orderBy: { order: "desc" },
+                select: { order: true },
+            });
+            moduleOrder = (maxModule?.order || 0) + 1;
+        }
+
         const module = await db.module.create({
             data: {
                 courseId,
                 title: data.title,
-                order: data.order,
+                order: moduleOrder,
             },
             select: {
                 id: true,
@@ -333,11 +466,27 @@ class AdminCourseService {
             throw new APIError(httpStatus.NOT_FOUND, "Module not found in this course");
         }
 
+        // Auto-resolve order conflicts
+        let lessonOrder = data.order;
+        const existingLessonWithOrder = await db.lesson.findFirst({
+            where: { moduleId, order: lessonOrder },
+            select: { id: true },
+        });
+
+        if (!lessonOrder || existingLessonWithOrder) {
+            const maxLesson = await db.lesson.findFirst({
+                where: { moduleId },
+                orderBy: { order: "desc" },
+                select: { order: true },
+            });
+            lessonOrder = (maxLesson?.order || 0) + 1;
+        }
+
         const lesson = await db.lesson.create({
             data: {
                 moduleId,
                 title: data.title,
-                order: data.order,
+                order: lessonOrder,
                 durationSec: data.durationSec,
                 unlockAfterDays: data.unlockAfterDays,
                 isFreePreview: data.isFreePreview,
@@ -429,16 +578,30 @@ class AdminCourseService {
                 moduleId,
                 module: { courseId },
             },
-            select: { id: true },
+            select: { 
+                id: true,
+                contents: {
+                    select: { mediaId: true }
+                }
+            },
         });
 
         if (!existingLesson) {
             throw new APIError(httpStatus.NOT_FOUND, "Lesson not found in this module");
         }
 
+        const mediaIdsToCleanup = existingLesson.contents
+            .map((c) => c.mediaId)
+            .filter((id) => id !== null) as string[];
+
         // Delete lesson (cascades to lesson contents and progress)
         await db.lesson.delete({
             where: { id: lessonId },
+        });
+
+        // Asynchronously cleanup orphaned media assets from Cloud & DB
+        mediaIdsToCleanup.forEach((mediaId) => {
+            cleanupOldMediaAsset(mediaId).catch(console.error);
         });
 
         // Re-normalize lesson order sequentially
@@ -532,6 +695,87 @@ class AdminCourseService {
     }
 
     /**
+     * PUT /v1/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId/contents/:contentId
+     * Updates an existing content block (e.g. fix typo in title/body, change order or media).
+     */
+    public async updateLessonContent(
+        courseId: string,
+        moduleId: string,
+        lessonId: string,
+        contentId: string,
+        adminId: string,
+        role: string,
+        data: UpdateLessonContent
+    ) {
+        await this.verifyCourseOwnership(courseId, adminId, role);
+
+        const existingContent = await db.lessonContent.findFirst({
+            where: {
+                id: contentId,
+                lessonId,
+                lesson: { moduleId, module: { courseId } },
+            },
+            select: { id: true, mediaId: true },
+        });
+
+        if (!existingContent) {
+            throw new APIError(
+                httpStatus.NOT_FOUND,
+                "Lesson content block not found in this lesson"
+            );
+        }
+
+        if (
+            data.mediaId !== undefined &&
+            existingContent.mediaId &&
+            existingContent.mediaId !== data.mediaId
+        ) {
+            await cleanupOldMediaAsset(existingContent.mediaId, data.mediaId);
+        }
+
+        if (data.mediaId) {
+            const media = await db.mediaAsset.findUnique({
+                where: { id: data.mediaId },
+                select: { id: true },
+            });
+            if (!media) {
+                throw new APIError(httpStatus.BAD_REQUEST, "Specified media asset not found");
+            }
+        }
+
+        const updatedContent = await db.lessonContent.update({
+            where: { id: contentId },
+            data: {
+                ...(data.type !== undefined && { type: data.type as any }),
+                ...(data.order !== undefined && { order: data.order }),
+                ...(data.title !== undefined && { title: data.title }),
+                ...(data.body !== undefined && { body: data.body }),
+                ...(data.mediaId !== undefined && { mediaId: data.mediaId }),
+            },
+            select: {
+                id: true,
+                lessonId: true,
+                type: true,
+                order: true,
+                title: true,
+                body: true,
+                mediaId: true,
+                media: {
+                    select: {
+                        id: true,
+                        storageKey: true,
+                        url: true,
+                        mimeType: true,
+                    },
+                },
+                createdAt: true,
+            },
+        });
+
+        return updatedContent;
+    }
+
+    /**
      * DELETE /v1/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId/contents/:contentId
      * Deletes a content block from a lesson and re-normalizes content order.
      */
@@ -551,7 +795,7 @@ class AdminCourseService {
                 lessonId,
                 lesson: { moduleId, module: { courseId } },
             },
-            select: { id: true },
+            select: { id: true, mediaId: true },
         });
 
         if (!existingContent) {
@@ -564,6 +808,10 @@ class AdminCourseService {
         await db.lessonContent.delete({
             where: { id: contentId },
         });
+
+        if (existingContent.mediaId) {
+            cleanupOldMediaAsset(existingContent.mediaId).catch(console.error);
+        }
 
         // Re-normalize content block order sequentially
         const remainingContents = await db.lessonContent.findMany({
@@ -603,13 +851,6 @@ class AdminCourseService {
 
         if (!course) {
             throw new APIError(httpStatus.NOT_FOUND, "Course not found");
-        }
-
-        if (role !== "SUPER" && course.instructorId !== adminId) {
-            throw new APIError(
-                httpStatus.FORBIDDEN,
-                "You do not have permission to view analytics for this course"
-            );
         }
 
         const now = new Date();
@@ -711,10 +952,14 @@ class AdminCourseService {
                 isFree: true,
                 accessDurationDays: true,
                 isPublished: true,
+                thumbnailMediaId: true,
                 createdAt: true,
                 updatedAt: true,
                 instructor: {
                     select: { id: true, name: true, email: true },
+                },
+                thumbnail: {
+                    select: { id: true, url: true, storageKey: true, mimeType: true },
                 },
                 modules: {
                     orderBy: { order: "asc" },
@@ -762,6 +1007,97 @@ class AdminCourseService {
         }
 
         return course;
+    }
+
+    /**
+     * PATCH /v1/admin/courses/:courseId/modules/reorder
+     * Reorders modules in a course.
+     */
+    public async reorderModules(
+        courseId: string,
+        adminId: string,
+        role: string,
+        orders: { id: string; order: number }[]
+    ) {
+        await this.verifyCourseOwnership(courseId, adminId, role);
+
+        await db.$transaction(async (tx) => {
+            for (const item of orders) {
+                await tx.module.update({
+                    where: { id: item.id },
+                    data: { order: item.order },
+                });
+            }
+        });
+
+        return { message: "Modules reordered successfully" };
+    }
+
+    /**
+     * PATCH /v1/admin/courses/:courseId/modules/:moduleId/lessons/reorder
+     * Reorders lessons within a module.
+     */
+    public async reorderLessons(
+        courseId: string,
+        moduleId: string,
+        adminId: string,
+        role: string,
+        orders: { id: string; order: number }[]
+    ) {
+        await this.verifyCourseOwnership(courseId, adminId, role);
+
+        await db.$transaction(async (tx) => {
+            // Step 1: Set negative temp orders to avoid unique constraint conflicts
+            for (let i = 0; i < orders.length; i++) {
+                await tx.lesson.update({
+                    where: { id: orders[i].id },
+                    data: { order: -(i + 1000) },
+                });
+            }
+            // Step 2: Set target final orders
+            for (const item of orders) {
+                await tx.lesson.update({
+                    where: { id: item.id },
+                    data: { order: item.order },
+                });
+            }
+        });
+
+        return { message: "Lessons reordered successfully" };
+    }
+
+    /**
+     * PATCH /v1/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId/contents/reorder
+     * Reorders content blocks within a lesson.
+     */
+    public async reorderLessonContents(
+        courseId: string,
+        moduleId: string,
+        lessonId: string,
+        adminId: string,
+        role: string,
+        orders: { id: string; order: number }[]
+    ) {
+        await this.verifyCourseOwnership(courseId, adminId, role);
+
+        await db.$transaction(async (tx) => {
+            // Step 1: Set negative temp orders to avoid unique constraint conflicts
+            for (let i = 0; i < orders.length; i++) {
+                await tx.lessonContent.update({
+                    where: { id: orders[i].id },
+                    data: { order: -(i + 1000) },
+                });
+            }
+            // Step 2: Set target final orders
+            for (const item of orders) {
+                await tx.lessonContent.update({
+                    where: { id: item.id },
+                    data: { order: item.order },
+                });
+            }
+        });
+
+        return { message: "Lesson contents reordered successfully" };
     }
 }
 
