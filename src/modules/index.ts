@@ -11,6 +11,7 @@ import supportRoutes from "./support/support.routes";
 import userRoutes from "./users/user.routes";
 import wishlistRoutes from "./wishlist/wishlist.routes";
 import { referralRoutes } from "./referral/referral.routes";
+import { communityRoutes } from "./community/community.routes";
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.use("/support", supportRoutes);
 router.use("/wishlist", wishlistRoutes);
 router.use("/upload", uploadRouter);
 router.use("/referrals", referralRoutes);
+router.use("/community", communityRoutes);
 
 export default router;
 
