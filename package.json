@@ -8,6 +8,7 @@
         "vercel-build": "prisma generate && tsc",
         "start": "cross-env NODE_ENV=production node -r module-alias/register dist/index.js",
         "seed": "npx tsx prisma/seed.ts",
+        "backfill-referrals": "npx ts-node -r ./src/config/moduleAlias.ts src/scripts/backfillReferrals.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "prisma": {

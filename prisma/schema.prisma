@@ -20,6 +20,8 @@ model Admin {
   coursesManaged       Course[]        @relation("InstructorCourses")
   reviewedReports      MessageReport[] @relation("ReviewedByAdmin")
   reviewedTestimonials Testimonial[]   @relation("ReviewedByAdmin")
+  assignedSupportTickets SupportTicket[] @relation("AssignedSupportTickets")
+  supportMessages        SupportMessage[] @relation("AdminSupportMessages")
 
   @@index([email])
   @@index([role])
@@ -31,6 +33,7 @@ model User {
   name          String?
   password      String?
   email         String?     @unique
+  expoPushToken String?
   avatarMediaId String?
   avatar        MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id])
 
@@ -51,6 +54,8 @@ model User {
   reviews           Review[]
   certificates      Certificate[]
   testimonials      Testimonial[]
+  supportTickets    SupportTicket[]
+  supportMessages   SupportMessage[]  @relation("UserSupportMessages")
 
   wallet        Wallet?
   referralCode  ReferralCode?
@@ -416,6 +421,7 @@ model MediaAsset {
   collegeResultFor  UserEducationDetails[] @relation("CollegeResultFile")
   classXIIResultFor UserEducationDetails[] @relation("ClassXIIResultFile")
   classXResultFor   UserEducationDetails[] @relation("ClassXResultFile")
+  supportMessageAttachments SupportMessage[] @relation("SupportMessageAttachments")
 }
 
 model ReferralCode {
@@ -436,15 +442,25 @@ model Referral {
   refereeId  String @unique
   referee    User   @relation("RefereeUser", fields: [refereeId], references: [id], onDelete: Cascade)
 
-  codeUsed     String
-  status       ReferralStatus @default(PENDING)
-  rewardAmount Decimal?       @db.Decimal(10, 2)
-  rewardedAt   DateTime?
+  codeUsed            String
+  status              ReferralStatus @default(PENDING)
+  rewardAmount        Decimal?       @db.Decimal(10, 2)
+  refereeRewardAmount Decimal?       @db.Decimal(10, 2)
+  rewardedAt          DateTime?
 
   createdAt DateTime @default(now())
 
   @@index([referrerId])
   @@index([status])
+}
+
+model ReferralConfig {
+  id                    String   @id @default("default")
+  referrerRewardCredits Int      @default(100)
+  refereeRewardCredits  Int      @default(50)
+  minPurchaseAmount     Decimal  @default(0) @db.Decimal(10, 2)
+  isEnabled             Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
 }
 
 model Testimonial {
@@ -704,3 +720,85 @@ model UserEducationDetails {
 
   @@index([userId])
 }
+
+// --------------------------------------------------------
+// SUPPORT TICKET & HELP DESK MODULE
+// --------------------------------------------------------
+
+enum TicketCategory {
+  TECHNICAL
+  BILLING_PAYMENT
+  COURSE_ACCESS
+  ACCOUNT
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketSenderType {
+  USER
+  ADMIN
+}
+
+model SupportTicket {
+  id           String         @id @default(uuid())
+  ticketNumber String         @unique
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subject      String
+  category     TicketCategory @default(OTHER)
+  priority     TicketPriority @default(MEDIUM)
+  status       TicketStatus   @default(OPEN)
+
+  assignedAdminId String?
+  assignedAdmin   Admin?       @relation("AssignedSupportTickets", fields: [assignedAdminId], references: [id])
+
+  messages SupportMessage[]
+
+  lastRepliedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([assignedAdminId])
+}
+
+model SupportMessage {
+  id       String        @id @default(uuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderType TicketSenderType
+
+  senderUserId String?
+  senderUser   User?   @relation("UserSupportMessages", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  senderAdminId String?
+  senderAdmin   Admin?  @relation("AdminSupportMessages", fields: [senderAdminId], references: [id], onDelete: SetNull)
+
+  message        String
+  isInternalNote Boolean @default(false)
+
+  attachments MediaAsset[] @relation("SupportMessageAttachments")
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+

@@ -34,3 +34,13 @@ export const getReferrals = async (req: Request, res: Response) => {
     const referrals = await userService.getReferrals(req.user!.id);
     res.status(httpStatus.OK).json({ success: true, data: referrals });
 };
+
+export const updatePushToken = async (req: Request, res: Response) => {
+    const { token } = req.body;
+    if (!token) {
+        res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Push token is required" });
+        return;
+    }
+    const result = await userService.updatePushToken(req.user!.id, token);
+    res.status(httpStatus.OK).json({ success: true, message: "Push token updated", data: result });
+};

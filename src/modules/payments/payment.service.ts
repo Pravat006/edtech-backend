@@ -4,6 +4,7 @@ import httpStatus from "http-status";
 import { razorpayService } from "@/services/razorpay.service";
 import envVars from "@/config/envVars";
 import { logger } from "@/config/logger";
+import { referralService } from "../referral/referral.service";
 
 class PaymentService {
     /**
@@ -276,6 +277,13 @@ class PaymentService {
                     currency: payment.currency,
                 },
             });
+
+            // 10. Trigger Referral Reward Engine (if user was referred by someone)
+            setTimeout(() => {
+                referralService.processReferralRewardOnPurchase(userId, Number(payment.amount)).catch((err) => {
+                    logger.error("Error processing referral reward on purchase:", err);
+                });
+            }, 0);
 
             return enrollment;
         });

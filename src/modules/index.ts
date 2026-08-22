@@ -7,8 +7,10 @@ import paymentRoutes from "./payments/payment.routes";
 import profileRoutes from "./profile/profile.routes";
 import publicRoutes from "./public/public.routes";
 import { uploadRouter } from "./upload/upload.route";
+import supportRoutes from "./support/support.routes";
 import userRoutes from "./users/user.routes";
 import wishlistRoutes from "./wishlist/wishlist.routes";
+import { referralRoutes } from "./referral/referral.routes";
 
 const router = Router();
 
@@ -24,8 +26,10 @@ router.use("/courses", courseRoutes);
 router.use("/enrollments", enrollmentRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/profile", profileRoutes);
+router.use("/support", supportRoutes);
 router.use("/wishlist", wishlistRoutes);
 router.use("/upload", uploadRouter);
+router.use("/referrals", referralRoutes);
 
 export default router;
 

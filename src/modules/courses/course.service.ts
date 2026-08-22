@@ -298,7 +298,7 @@ class CourseService {
         const enrollments = await db.enrollment.findMany({
             where: {
                 userId,
-                status: "ACTIVE",
+                status: { in: ["ACTIVE", "COMPLETED"] },
                 OR: [
                     { expiresAt: null },
                     { expiresAt: { gt: now } },

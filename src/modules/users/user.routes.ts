@@ -17,5 +17,6 @@ router.put("/preferences", validateRequest(UpdatePreferencesSchema), userControl
 
 router.get("/wallet", userController.getWallet);
 router.get("/referrals", userController.getReferrals);
+router.patch("/push-token", userController.updatePushToken);
 
 export default router;

@@ -5,6 +5,8 @@ import adminCourseRoutes from "../courses/admin-course.routes";
 import adminEnrollmentRoutes from "../enrollments/admin-enrollment.routes";
 import adminUploadRoutes from "./upload/admin.upload.routes";
 import adminUserRoutes from "./users/admin.user.routes";
+import adminSupportRoutes from "./support/admin.support.routes";
+import { adminReferralRoutes } from "./referral/admin.referral.routes";
 
 import { verifyAdmin, requirePermission } from "@/middlewares/verifyAdmin";
 import { validateRequest } from "@/middlewares/validateRequest";
@@ -19,6 +21,8 @@ router.use("/courses", adminCourseRoutes);
 router.use("/enrollments", adminEnrollmentRoutes);
 router.use("/upload", adminUploadRoutes);
 router.use("/users", adminUserRoutes);
+router.use("/support", adminSupportRoutes);
+router.use("/referrals", adminReferralRoutes);
 
 router.patch(
     "/verifications/review",

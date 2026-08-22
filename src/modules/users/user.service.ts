@@ -88,6 +88,14 @@ class UserService {
             include: { referee: { select: { name: true, phoneNumber: true } } }
         });
     }
+
+    public async updatePushToken(userId: string, token: string) {
+        return await db.user.update({
+            where: { id: userId },
+            data: { expoPushToken: token },
+            select: { id: true, expoPushToken: true },
+        });
+    }
 }
 
 export const userService = new UserService();
