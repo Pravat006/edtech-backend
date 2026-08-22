@@ -44,3 +44,29 @@ export const updatePushToken = async (req: Request, res: Response) => {
     const result = await userService.updatePushToken(req.user!.id, token);
     res.status(httpStatus.OK).json({ success: true, message: "Push token updated", data: result });
 };
+
+export const requestPhoneChange = async (req: Request, res: Response) => {
+    const { newPhoneNumber } = req.body;
+    const result = await userService.requestPhoneChange(req.user!.id, newPhoneNumber);
+    res.status(httpStatus.OK).json(result);
+};
+
+export const verifyPhoneChange = async (req: Request, res: Response) => {
+    const { newPhoneNumber, code } = req.body;
+    const result = await userService.verifyPhoneChange(req.user!.id, newPhoneNumber, code);
+    res.status(httpStatus.OK).json(result);
+};
+
+export const requestEmailChange = async (req: Request, res: Response) => {
+    const { newEmail } = req.body;
+    const result = await userService.requestEmailChange(req.user!.id, newEmail);
+    res.status(httpStatus.OK).json(result);
+};
+
+export const verifyEmailChange = async (req: Request, res: Response) => {
+    const { newEmail, code } = req.body;
+    const result = await userService.verifyEmailChange(req.user!.id, newEmail, code);
+    res.status(httpStatus.OK).json(result);
+};
+
+

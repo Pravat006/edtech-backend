@@ -33,6 +33,7 @@ model User {
   name          String?
   password      String?
   email         String?     @unique
+  isEmailVerified Boolean   @default(false)
   expoPushToken String?
   avatarMediaId String?
   avatar        MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id])

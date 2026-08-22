@@ -3,6 +3,7 @@ import {
     renderSubAdminInviteTemplate,
     renderDocumentVerificationTemplate,
     renderPasswordResetTemplate,
+    renderEmailVerificationOtpTemplate,
 } from "./templates/email-templates";
 import { logger } from "@/config/logger";
 
@@ -109,6 +110,36 @@ export class EmailService {
             return false;
         }
     }
+
+    /**
+     * Send email verification OTP
+     */
+    public async sendEmailVerificationOtp(params: {
+        to: string;
+        name: string;
+        otpCode: string;
+    }): Promise<boolean> {
+        try {
+            const provider = EmailProviderFactory.getProvider();
+            const { html, text } = renderEmailVerificationOtpTemplate({
+                name: params.name,
+                otpCode: params.otpCode,
+            });
+
+            const result = await provider.sendEmail({
+                to: params.to,
+                subject: `${params.otpCode} is your Supermind Email Verification Code`,
+                html,
+                text,
+            });
+
+            return result.success;
+        } catch (err: any) {
+            logger.error(`[EmailService] Exception in sendEmailVerificationOtp: ${err?.message || err}`);
+            return false;
+        }
+    }
 }
 
 export const emailService = new EmailService();
+

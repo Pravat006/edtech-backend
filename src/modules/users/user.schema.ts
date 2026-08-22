@@ -32,3 +32,25 @@ export const UpdatePreferencesSchema = z.object({
     goals: z.array(GoalEnum).optional(),
 });
 export type UpdatePreferences = z.infer<typeof UpdatePreferencesSchema>;
+
+export const RequestPhoneChangeSchema = z.object({
+    newPhoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+});
+export type RequestPhoneChange = z.infer<typeof RequestPhoneChangeSchema>;
+
+export const VerifyPhoneChangeSchema = z.object({
+    newPhoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+    code: z.string().min(4, "OTP code must be at least 4 digits"),
+});
+export type VerifyPhoneChange = z.infer<typeof VerifyPhoneChangeSchema>;
+
+export const RequestEmailChangeSchema = z.object({
+    newEmail: z.string().email("Invalid email address"),
+});
+export type RequestEmailChange = z.infer<typeof RequestEmailChangeSchema>;
+
+export const VerifyEmailChangeSchema = z.object({
+    newEmail: z.string().email("Invalid email address"),
+    code: z.string().min(4, "OTP code must be at least 4 digits"),
+});
+export type VerifyEmailChange = z.infer<typeof VerifyEmailChangeSchema>;

@@ -156,3 +156,34 @@ export function renderPasswordResetTemplate(params: {
 
     return { html, text };
 }
+
+export function renderEmailVerificationOtpTemplate(params: {
+    name: string;
+    otpCode: string;
+}) {
+    const html = `
+    ${baseHeader("Email Verification OTP")}
+      <h2 style="margin-top: 0; color: #111827; font-size: 20px; font-weight: 600;">Verify Your Email Address</h2>
+      <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">Hello <strong>${params.name}</strong>,</p>
+      <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+        Please use the following 6-digit verification code to complete your email update on Supermind Education:
+      </p>
+
+      <div style="background-color: #f0fdf4; border: 1px dashed #10b981; border-radius: 16px; padding: 24px; margin: 28px 0; text-align: center;">
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #047857; font-weight: 700;">Verification Code</span>
+        <div style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #064e3b; margin-top: 8px;">
+          ${params.otpCode}
+        </div>
+      </div>
+
+      <p style="color: #6b7280; font-size: 13px;">
+        This code is valid for 5 minutes. If you did not request to update your email, please secure your account immediately.
+      </p>
+    ${baseFooter}
+    `;
+
+    const text = `Hello ${params.name},\n\nYour email verification code for Supermind Education is: ${params.otpCode}\n\nThis code expires in 5 minutes.`;
+
+    return { html, text };
+}
+
