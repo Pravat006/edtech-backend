@@ -5,7 +5,10 @@ import path from 'path';
 import morgan from 'morgan';
 import { Application } from 'express';
 
-const logsDir = path.join(process.cwd(), 'logs');
+const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+const logsDir = isVercel
+    ? '/tmp/logs'
+    : path.join(process.cwd(), 'logs');
 
 // Ensuring logs directory exists
 if (!fs.existsSync(logsDir)) {
@@ -112,8 +115,9 @@ const httpLogger = (app: Application) => {
     }
 };
 
-// Log cleanup – delete folders older than 30 days
+// Log cleanup – delete folders older than 30 days (skip on Vercel)
 const cleanupOldLogs = () => {
+    if (isVercel) return;
     try {
         const folders = fs.readdirSync(logsDir);
         const now = Date.now();
@@ -137,7 +141,9 @@ const cleanupOldLogs = () => {
     }
 };
 
-cleanupOldLogs();
-setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+if (!isVercel) {
+    cleanupOldLogs();
+    setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+}
 
 export { logger, httpLogger };

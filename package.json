@@ -4,7 +4,8 @@
     "main": "index.js",
     "scripts": {
         "dev": "cross-env NODE_ENV=development npx nodemon -r module-alias/register src/index.ts",
-        "build": "tsc",
+        "build": "prisma generate && tsc",
+        "vercel-build": "prisma generate && tsc",
         "start": "cross-env NODE_ENV=production node -r module-alias/register dist/index.js",
         "seed": "npx tsx prisma/seed.ts",
         "test": "echo \"Error: no test specified\" && exit 1"

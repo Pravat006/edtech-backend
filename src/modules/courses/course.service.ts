@@ -65,7 +65,10 @@ class CourseService {
                 enrollments: { none: { userId } },
                 ...(subject && { subject: subject as any }),
                 ...(language && { language }),
-                ...(isFree !== undefined && { isFree }),
+                ...(isFree !== undefined &&
+                    (isFree
+                        ? { OR: [{ isFree: true }, { price: 0 }] }
+                        : { isFree: false, price: { gt: 0 } })),
                 ...(search && {
                     title: { contains: search, mode: "insensitive" as const },
                 }),
@@ -535,20 +538,7 @@ class CourseService {
     public async getLessonContent(courseId: string, lessonId: string, userId: string) {
         const now = new Date();
 
-        // 1. Verify enrollment
-        const enrollment = await db.enrollment.findUnique({
-            where: { userId_courseId: { userId, courseId } },
-            select: { status: true, enrolledAt: true, expiresAt: true },
-        });
-
-        if (!enrollment || enrollment.status !== "ACTIVE") {
-            throw new APIError(httpStatus.FORBIDDEN, "You are not enrolled in this course");
-        }
-        if (enrollment.expiresAt && enrollment.expiresAt < now) {
-            throw new APIError(httpStatus.FORBIDDEN, "Your access to this course has expired");
-        }
-
-        // 2. Get lesson details to check drip status
+        // 1. Get lesson details to check drip status and free preview
         const lesson = await db.lesson.findFirst({
             where: { id: lessonId, module: { courseId } },
             select: {
@@ -575,10 +565,28 @@ class CourseService {
             throw new APIError(httpStatus.NOT_FOUND, "Lesson not found in this course");
         }
 
-        // 3. Check Drip Status
+        // If it is a free preview, return it immediately without checking enrollment
+        if (lesson.isFreePreview) {
+            return lesson.contents;
+        }
+
+        // 2. For non-free lessons, verify enrollment
+        const enrollment = await db.enrollment.findUnique({
+            where: { userId_courseId: { userId, courseId } },
+            select: { status: true, enrolledAt: true, expiresAt: true },
+        });
+
+        if (!enrollment || enrollment.status !== "ACTIVE") {
+            throw new APIError(httpStatus.FORBIDDEN, "You are not enrolled in this course");
+        }
+        if (enrollment.expiresAt && enrollment.expiresAt < now) {
+            throw new APIError(httpStatus.FORBIDDEN, "Your access to this course has expired");
+        }
+
+        // 3. Check Drip Status for enrolled user
         const diffMs = now.getTime() - enrollment.enrolledAt.getTime();
         const daysEnrolled = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const isUnlocked = lesson.isFreePreview || !lesson.unlockAfterDays || daysEnrolled >= lesson.unlockAfterDays;
+        const isUnlocked = !lesson.unlockAfterDays || daysEnrolled >= lesson.unlockAfterDays;
 
         if (!isUnlocked) {
             throw new APIError(httpStatus.FORBIDDEN, "This lesson is currently locked (Drip content)");
