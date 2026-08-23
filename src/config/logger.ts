@@ -48,7 +48,7 @@ const createTransport = (level: string) =>
     });
 
 const fileTransports: winston.transport[] = [];
-if (fs.existsSync(logsDir)) {
+if (!isVercel && fs.existsSync(logsDir)) {
     fileTransports.push(
         createTransport('error'),
         createTransport('warn'),
