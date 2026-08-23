@@ -187,6 +187,9 @@ export class SupportService {
                         : undefined,
                 },
                 include: {
+                    senderUser: {
+                        select: { id: true, name: true, phoneNumber: true },
+                    },
                     attachments: true,
                 },
             });
