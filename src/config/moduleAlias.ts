@@ -7,8 +7,10 @@ type ModuleAliasApi = {
     addAliases: (aliases: Record<string, string>) => void;
 };
 
-const distDir = path.join(process.cwd(), "dist");
-const basePath = fs.existsSync(distDir) ? "dist" : "src";
+const isVercel = process.env.VERCEL === "1" || Boolean(process.env.NOW_REGION);
+const distApp = path.join(process.cwd(), "dist", "app.js");
+const basePath = (!isVercel && fs.existsSync(distApp)) ? "dist" : "src";
+
 const aliasModule = moduleAlias as typeof moduleAlias & ModuleAliasApi;
 aliasModule.addAliases({
     "@": path.join(process.cwd(), basePath),
