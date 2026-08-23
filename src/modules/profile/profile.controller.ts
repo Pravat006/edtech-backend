@@ -72,3 +72,11 @@ export const reviewDocumentVerification = async (req: Request, res: Response) =>
         data,
     });
 };
+
+export const getPendingVerifications = async (req: Request, res: Response) => {
+    const data = await profileService.getPendingVerifications();
+    res.status(httpStatus.OK).json({
+        success: true,
+        data,
+    });
+};

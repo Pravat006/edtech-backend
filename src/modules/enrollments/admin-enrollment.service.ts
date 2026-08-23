@@ -11,6 +11,7 @@ class AdminEnrollmentService {
      */
     public async getAdminEnrollments(query: AdminEnrollmentQuery) {
         const { status, courseId, userId, search, limit, cursor } = query;
+        const takeLimit = Number(limit) && Number(limit) > 0 ? Number(limit) : 20;
 
         const where: any = {
             ...(status && { status }),
@@ -30,7 +31,7 @@ class AdminEnrollmentService {
         const [enrollments, totalCount] = await Promise.all([
             db.enrollment.findMany({
                 where,
-                take: limit + 1,
+                take: takeLimit + 1,
                 ...(cursor && {
                     skip: 1,
                     cursor: { id: cursor },
@@ -46,7 +47,7 @@ class AdminEnrollmentService {
         ]);
 
         let nextCursor: string | undefined = undefined;
-        if (enrollments.length > limit) {
+        if (enrollments.length > takeLimit) {
             const nextItem = enrollments.pop();
             nextCursor = nextItem?.id;
         }

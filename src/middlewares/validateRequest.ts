@@ -3,10 +3,10 @@ import { ZodSchema, ZodError } from "zod";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 
-export const validateRequest = (schema: ZodSchema) => {
+export const validateRequest = (schema: ZodSchema, source: "body" | "query" | "params" = "body") => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            await schema.parseAsync(req.body);
+            await schema.parseAsync(req[source]);
             next();
         } catch (error) {
             if (error instanceof ZodError) {
@@ -18,3 +18,5 @@ export const validateRequest = (schema: ZodSchema) => {
         }
     };
 };
+
+export const validateQuery = (schema: ZodSchema) => validateRequest(schema, "query");

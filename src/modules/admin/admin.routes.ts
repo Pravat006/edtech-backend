@@ -24,6 +24,13 @@ router.use("/users", adminUserRoutes);
 router.use("/support", adminSupportRoutes);
 router.use("/referrals", adminReferralRoutes);
 
+router.get(
+    "/verifications/pending",
+    verifyAdmin,
+    requirePermission("verifications:read"),
+    profileController.getPendingVerifications
+);
+
 router.patch(
     "/verifications/review",
     verifyAdmin,

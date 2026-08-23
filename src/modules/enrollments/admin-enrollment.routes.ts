@@ -11,7 +11,7 @@ router.use(authenticateAdmin);
 // Dashboard listing
 router.get(
     "/",
-    validateRequest(AdminEnrollmentQuerySchema),
+    validateRequest(AdminEnrollmentQuerySchema, "query"),
     adminEnrollmentController.getAdminEnrollments
 );
 

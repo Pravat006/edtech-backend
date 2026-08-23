@@ -209,6 +209,14 @@ export class ChatWebSocketGateway {
         }
     }
 
+    public getOnlineUserIds(): Set<string> {
+        return new Set(this.userSockets.keys());
+    }
+
+    public isUserOnline(userId: string): boolean {
+        return this.userSockets.has(userId) && (this.userSockets.get(userId)?.size || 0) > 0;
+    }
+
     public close() {
         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
         if (this.wss) this.wss.close();

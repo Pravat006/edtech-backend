@@ -172,6 +172,62 @@ class ProfileService {
             notifiedEmail: user.email || null,
         };
     }
+
+    /**
+     * Admin fetch pending verification documents queue
+     */
+    public async getPendingVerifications() {
+        const personalDetails = await db.userPersonalDetails.findMany({
+            where: {
+                OR: [
+                    { aadhaarFileId: { not: null } },
+                    { panFileId: { not: null } },
+                ],
+            },
+            include: {
+                user: { select: { id: true, name: true, email: true } },
+                aadhaarFile: { select: { id: true, url: true, createdAt: true } },
+                panFile: { select: { id: true, url: true, createdAt: true } },
+            },
+        });
+
+        const items: Array<{
+            id: string;
+            userId: string;
+            studentName: string;
+            studentEmail: string;
+            documentType: string;
+            submittedAt: string;
+            fileUrl: string;
+        }> = [];
+
+        for (const pd of personalDetails) {
+            if (pd.aadhaarFile) {
+                items.push({
+                    id: `aadhaar-${pd.id}`,
+                    userId: pd.userId,
+                    studentName: pd.user.name || "Student",
+                    studentEmail: pd.user.email || "No email",
+                    documentType: "Aadhaar Card",
+                    submittedAt: pd.aadhaarFile.createdAt.toISOString(),
+                    fileUrl: pd.aadhaarFile.url,
+                });
+            }
+            if (pd.panFile) {
+                items.push({
+                    id: `pan-${pd.id}`,
+                    userId: pd.userId,
+                    studentName: pd.user.name || "Student",
+                    studentEmail: pd.user.email || "No email",
+                    documentType: "PAN Card",
+                    submittedAt: pd.panFile.createdAt.toISOString(),
+                    fileUrl: pd.panFile.url,
+                });
+            }
+        }
+
+        return items;
+    }
 }
 
 export const profileService = new ProfileService();

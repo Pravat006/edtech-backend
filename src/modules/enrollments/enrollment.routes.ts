@@ -11,7 +11,7 @@ router.use(authenticateUser);
 
 router.get(
     "/",
-    validateRequest(EnrollmentQuerySchema),
+    validateRequest(EnrollmentQuerySchema, "query"),
     enrollmentController.getUserEnrollments
 );
 
