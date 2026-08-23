@@ -1,9 +1,3 @@
-let appInstance;
-try {
-    appInstance = require("../dist/app").default || require("../dist/app");
-} catch {
-    require("../src/config/moduleAlias");
-    appInstance = require("../src/app").default || require("../src/app");
-}
+import app from "../dist/app";
 
-export default appInstance;
+export default app;

@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import { db } from "@/config/database";
 import { smsService } from "@/services/sms.service";
@@ -95,7 +94,7 @@ class AuthService {
             data: { password: hashedPassword }
         });
 
-        const jti = uuidv4();
+        const jti = crypto.randomUUID();
         const { accessToken, refreshToken } = generateTokens({
             id: user.id,
             jti,
@@ -127,7 +126,7 @@ class AuthService {
             throw new APIError(httpStatus.UNAUTHORIZED, "Invalid phone number or password.");
         }
 
-        const jti = uuidv4();
+        const jti = crypto.randomUUID();
         const { accessToken, refreshToken } = generateTokens({
             id: user.id,
             jti,
