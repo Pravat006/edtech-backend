@@ -26,7 +26,7 @@ const EnvConfigSchema = z.object({
     REDIS_HOST: z.string().trim().min(1).default("localhost"),
     REDIS_PORT: z.coerce.number().int().positive().default(4567),
     REDIS_DB: z.coerce.number().int().min(0).default(0),
-    REDIS_URL: z.string().trim().min(1).url().optional(),
+    REDIS_URL: z.string().trim().min(1).optional(),
 
     AWS_REGION: z.string().trim().min(1).default("us-east-1"),
     AWS_ACCESS_KEY_ID: z.string().trim().min(1).default("dummy"),
