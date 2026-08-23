@@ -6,6 +6,7 @@
         "dev": "cross-env NODE_ENV=development npx nodemon -r module-alias/register src/index.ts",
         "build": "prisma generate && tsc",
         "vercel-build": "prisma generate && tsc",
+        "postinstall": "prisma generate",
         "start": "cross-env NODE_ENV=production node -r module-alias/register dist/index.js",
         "seed": "npx tsx prisma/seed.ts",
         "backfill-referrals": "npx ts-node -r ./src/config/moduleAlias.ts src/scripts/backfillReferrals.ts",
