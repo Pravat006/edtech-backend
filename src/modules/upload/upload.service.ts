@@ -3,7 +3,7 @@ import { MediaProviderFactory } from "./providers/media-provider.factory";
 import { CompleteUploadInput } from "./providers/media-provider.interface";
 import { APIError } from "@/utils/APIError";
 import { db } from "@/config/database";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import { MediaType } from "../../../generated/prisma";
 import { ImageKitCompleteSchema } from "./upload.schema";
 
@@ -64,7 +64,7 @@ const getMediaType = (mimeType: string): MediaType => {
 export const initiateUpload = async (options: UploadOptions) => {
     const strategy = s3Service.decideStrategy(BigInt(options.size));
     const mediaType = getMediaType(options.mimeType);
-    const key = `uploads/${options.ownerId}/${uuidv4()}/${options.filename}`;
+    const key = `uploads/${options.ownerId}/${crypto.randomUUID()}/${options.filename}`;
 
     const mediaAsset = await db.mediaAsset.create({
         data: {
