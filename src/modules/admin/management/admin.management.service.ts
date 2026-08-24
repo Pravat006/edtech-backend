@@ -5,6 +5,7 @@ import httpStatus from "http-status";
 import { CreateSubAdmin } from "./admin.management.schema";
 import { AdminPermission } from "../../../../generated/prisma";
 import { emailService } from "@/modules/email/email.service";
+import envVars from "@/config/envVars";
 
 class AdminManagementService {
     public async createSubAdmin(data: CreateSubAdmin) {
@@ -14,7 +15,7 @@ class AdminManagementService {
         }
 
         const hashedPassword = await argon2.hash(data.password);
-        
+
         const newAdmin = await db.admin.create({
             data: {
                 name: data.name,
@@ -24,17 +25,19 @@ class AdminManagementService {
                 permissions: data.permissions || [],
             }
         });
+        const rawUrl = envVars.ADMIN_FRONTEND_URL || envVars.ADMIN_ORIGIN || "http://localhost:3001";
+        const adminFrontendUrl = rawUrl.replace(/\/$/, "");
 
-        // Trigger invitation email in background (non-blocking)
-        const adminFrontendUrl = process.env.ADMIN_FRONTEND_URL || "http://localhost:3001";
-        emailService.sendSubAdminInvite({
-            to: newAdmin.email,
-            name: newAdmin.name,
-            acceptUrl: `${adminFrontendUrl}/accept-invite?token=${newAdmin.id}`,
-            permissions: newAdmin.permissions as string[],
-        }).catch((err) => {
+        try {
+            await emailService.sendSubAdminInvite({
+                to: newAdmin.email,
+                name: newAdmin.name,
+                acceptUrl: `${adminFrontendUrl}/accept-invite?token=${newAdmin.id}`,
+                permissions: newAdmin.permissions as string[],
+            });
+        } catch (err) {
             console.error("[AdminManagementService] Error sending sub-admin invite:", err);
-        });
+        }
 
         const { password, ...safeAdmin } = newAdmin;
         return safeAdmin;

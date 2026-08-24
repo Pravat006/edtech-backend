@@ -11,9 +11,13 @@ const app = express();
 httpLogger(app);
 
 
+const rawAdminOrigin = (process.env.ADMIN_ORIGIN || "http://localhost:3001").replace(/\/$/, "");
+const rawFrontendOrigin = (process.env.FRONTEND_ORIGIN || "http://localhost:3000").replace(/\/$/, "");
+
 const allowedOrigins = [
-    process.env.ADMIN_ORIGIN || "http://localhost:3001",
-    process.env.FRONTEND_ORIGIN || "http://localhost:3000",
+    rawAdminOrigin,
+    rawFrontendOrigin,
+    "https://lms-admin-dashboard-zeta.vercel.app",
     "http://localhost:3001",
     "http://localhost:3000",
 ];

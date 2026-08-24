@@ -7,6 +7,7 @@ import { db } from "@/config/database";
 export const verifyAdmin = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const token = req.cookies?.admin_access_token;
+
         if (!token) {
             return next(new APIError(httpStatus.UNAUTHORIZED, "Admin session not found. Please log in."));
         }

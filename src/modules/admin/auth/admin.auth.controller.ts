@@ -6,8 +6,9 @@ import { adminAuthService } from "./admin.auth.service";
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict" as const,
+    secure: true,
+    sameSite: "none" as const,
+    path: "/",
 };
 
 export const login = async (req: Request, res: Response) => {

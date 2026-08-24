@@ -12,6 +12,10 @@ const EnvConfigSchema = z.object({
 
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
+    ADMIN_ORIGIN: z.string().trim().optional(),
+    FRONTEND_ORIGIN: z.string().trim().optional(),
+    ADMIN_FRONTEND_URL: z.string().trim().optional(),
+
     DATABASE_URL: z.string().trim().min(1).url(),
 
     JWT_SECRET: z.string().trim().min(8, "JWT_SECRET must be at least 8 characters long"),
@@ -46,6 +50,9 @@ const EnvConfigSchema = z.object({
     SMTP_PASSWORD: z.string().trim().optional(),
     SMTP_PASS: z.string().trim().optional(),
 
+    // OTP Configuration
+    OTP_PROVIDER: z.string().trim().default("mock"),
+
     TWILIO_ACCOUNT_SID: z.string().trim().min(1),
     TWILIO_AUTH_TOKEN: z.string().trim().min(1),
     TWILIO_VERIFY_SERVICE_SID: z.string().trim().min(1),
@@ -68,6 +75,9 @@ export type EnvConfig = z.infer<typeof EnvConfigSchema>;
 const rawConfig = {
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
+    ADMIN_ORIGIN: process.env.ADMIN_ORIGIN,
+    FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN,
+    ADMIN_FRONTEND_URL: process.env.ADMIN_FRONTEND_URL,
     DATABASE_URL: process.env.DATABASE_URL,
     JWT_SECRET: process.env.JWT_SECRET,
     SESSION_SECRET: process.env.SESSION_SECRET,
@@ -89,6 +99,7 @@ const rawConfig = {
     SMTP_USER: process.env.SMTP_USER,
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
     SMTP_PASS: process.env.SMTP_PASS,
+    OTP_PROVIDER: process.env.OTP_PROVIDER,
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
     TWILIO_VERIFY_SERVICE_SID: process.env.TWILIO_VERIFY_SERVICE_SID,
@@ -134,6 +145,9 @@ try {
 export const {
     PORT,
     NODE_ENV,
+    ADMIN_ORIGIN,
+    FRONTEND_ORIGIN,
+    ADMIN_FRONTEND_URL,
     DATABASE_URL,
     JWT_SECRET,
     REDIS_HOST,
@@ -148,6 +162,7 @@ export const {
     SMTP_PORT,
     SMTP_USER,
     SMTP_PASSWORD,
+    OTP_PROVIDER,
     TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN,
     TWILIO_VERIFY_SERVICE_SID,
