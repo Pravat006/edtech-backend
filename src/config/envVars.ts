@@ -37,8 +37,8 @@ const EnvConfigSchema = z.object({
     EMAIL_PROVIDER: z.enum(["brevo", "resend", "smtp"]).default("brevo"),
     BREVO_API_KEY: z.string().trim().optional(),
     RESEND_API_KEY: z.string().trim().optional(),
-    EMAIL_FROM_ADDRESS: z.string().trim().email().default("noreply@supermind.com"),
-    EMAIL_FROM_NAME: z.string().trim().default("Supermind Education Platform"),
+    EMAIL_FROM_ADDRESS: z.string().trim().email().default("noreply@xyzeducation.com"),
+    EMAIL_FROM_NAME: z.string().trim().default("XYZ Education Platform"),
 
     SMTP_HOST: z.string().trim().optional(),
     SMTP_PORT: z.coerce.number().int().positive().default(587),

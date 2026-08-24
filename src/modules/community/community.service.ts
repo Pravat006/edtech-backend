@@ -79,7 +79,7 @@ export class CommunityService {
                 id: u.id,
                 name: u.name || "Learner",
                 role: "STUDENT",
-                sharedCourseTitle: "Supermind Learner",
+                sharedCourseTitle: "XYZ Education Learner",
                 isOnline: chatGateway.isUserOnline(u.id),
             }));
         }

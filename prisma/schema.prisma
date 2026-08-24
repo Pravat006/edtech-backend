@@ -22,6 +22,9 @@ model Admin {
   reviewedTestimonials Testimonial[]   @relation("ReviewedByAdmin")
   assignedSupportTickets SupportTicket[] @relation("AssignedSupportTickets")
   supportMessages        SupportMessage[] @relation("AdminSupportMessages")
+  cmsPagesUpdated        CmsPage[]        @relation("CmsPageUpdatedBy")
+  cmsRevisionsCreated    CmsPageRevision[] @relation("CmsRevisionCreatedBy")
+  bannersCreated         Banner[]         @relation("BannerCreatedBy")
 
   @@index([email])
   @@index([role])
@@ -518,6 +521,8 @@ enum AdminPermission {
   SUPPORT_WRITE
   COMMUNITY_READ
   COMMUNITY_WRITE
+  SETTINGS_READ
+  SETTINGS_WRITE
 }
 
 enum Goal {
@@ -805,5 +810,71 @@ model SupportMessage {
   createdAt DateTime @default(now())
 
   @@index([ticketId])
+}
+
+// --------------------------------------------------------
+// STATIC PAGES & CMS MODULE
+// --------------------------------------------------------
+
+model CmsPage {
+  id              String            @id @default(uuid())
+  slug            String            @unique
+  title           String
+  content         String            @db.Text
+  metaTitle       String?
+  metaDescription String?
+  isPublished     Boolean           @default(true)
+  version         Int               @default(1)
+
+  updatedById String?
+  updatedBy   Admin?  @relation("CmsPageUpdatedBy", fields: [updatedById], references: [id])
+
+  revisions CmsPageRevision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+}
+
+model CmsPageRevision {
+  id      String  @id @default(uuid())
+  pageId  String
+  page    CmsPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  title   String
+  content String  @db.Text
+  version Int
+
+  createdById String?
+  createdBy   Admin?   @relation("CmsRevisionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([pageId])
+  @@index([version])
+}
+
+// --------------------------------------------------------
+// PROMOTIONAL & HOMESCREEN BANNERS MODULE
+// --------------------------------------------------------
+
+model Banner {
+  id           String   @id @default(uuid())
+  title        String
+  thumbnailUrl String   @db.Text
+  linkUrl      String   @db.Text
+  description  String?  @db.Text
+  badgeText    String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  createdById  String?
+  createdBy    Admin?   @relation("BannerCreatedBy", fields: [createdById], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([displayOrder])
 }
 

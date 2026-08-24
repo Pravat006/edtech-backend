@@ -18,7 +18,7 @@ const baseHeader = (title: string) => `
           <!-- Brand Header -->
           <tr>
             <td style="background-color: #003c33; padding: 28px 32px; text-align: left;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Supermind Education</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">XYZ Education</h1>
               <p style="margin: 4px 0 0 0; color: #a7f3d0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">LMS Platform</p>
             </td>
           </tr>
@@ -34,7 +34,7 @@ const baseFooter = `
           <tr>
             <td style="background-color: #f9fafb; padding: 20px 32px; border-top: 1px solid #f3f4f6; text-align: center;">
               <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
-                &copy; ${new Date().getFullYear()} Supermind Education. All rights reserved.<br>
+                &copy; ${new Date().getFullYear()} XYZ Education. All rights reserved.<br>
                 This is an automated system email. Please do not reply directly.
               </p>
             </td>
@@ -61,7 +61,7 @@ export function renderSubAdminInviteTemplate(params: {
       <h2 style="margin-top: 0; color: #111827; font-size: 20px; font-weight: 600;">Admin Account Invitation</h2>
       <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">Hello <strong>${params.name}</strong>,</p>
       <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
-        You have been invited to join the Supermind Education Admin Platform as a <strong>Sub-Admin</strong>.
+        You have been invited to join the XYZ Education Admin Platform as a <strong>Sub-Admin</strong>.
       </p>
 
       <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin: 24px 0;">
@@ -85,7 +85,7 @@ export function renderSubAdminInviteTemplate(params: {
     ${baseFooter}
     `;
 
-    const text = `Hello ${params.name},\n\nYou have been invited to join the Supermind Education Admin Platform as a Sub-Admin.\n\nAssigned Permissions: ${params.permissions.join(", ")}\n\nPlease accept your invitation and set up your password using the link below (expires in 24 hours):\n${params.acceptUrl}\n\nSupermind Education`;
+    const text = `Hello ${params.name},\n\nYou have been invited to join the XYZ Education Admin Platform as a Sub-Admin.\n\nAssigned Permissions: ${params.permissions.join(", ")}\n\nPlease accept your invitation and set up your password using the link below (expires in 24 hours):\n${params.acceptUrl}\n\nXYZ Education`;
 
     return { html, text };
 }
@@ -125,7 +125,7 @@ export function renderDocumentVerificationTemplate(params: {
     ${baseFooter}
     `;
 
-    const text = `Hello ${params.studentName},\n\nYour submission for ${params.documentType} status: ${params.status}.${params.reason ? ` Reason: ${params.reason}` : ""}\n\nSupermind Education`;
+    const text = `Hello ${params.studentName},\n\nYour submission for ${params.documentType} status: ${params.status}.${params.reason ? ` Reason: ${params.reason}` : ""}\n\nXYZ Education`;
 
     return { html, text };
 }
@@ -152,7 +152,7 @@ export function renderPasswordResetTemplate(params: {
     ${baseFooter}
     `;
 
-    const text = `Hello ${params.name},\n\nUse the link below to reset your password (expires in 15 minutes):\n${params.resetUrl}\n\nSupermind Education`;
+    const text = `Hello ${params.name},\n\nUse the link below to reset your password (expires in 15 minutes):\n${params.resetUrl}\n\nXYZ Education`;
 
     return { html, text };
 }
@@ -166,7 +166,7 @@ export function renderEmailVerificationOtpTemplate(params: {
       <h2 style="margin-top: 0; color: #111827; font-size: 20px; font-weight: 600;">Verify Your Email Address</h2>
       <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">Hello <strong>${params.name}</strong>,</p>
       <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
-        Please use the following 6-digit verification code to complete your email update on Supermind Education:
+        Please use the following 6-digit verification code to complete your email update on XYZ Education:
       </p>
 
       <div style="background-color: #f0fdf4; border: 1px dashed #10b981; border-radius: 16px; padding: 24px; margin: 28px 0; text-align: center;">
@@ -182,8 +182,7 @@ export function renderEmailVerificationOtpTemplate(params: {
     ${baseFooter}
     `;
 
-    const text = `Hello ${params.name},\n\nYour email verification code for Supermind Education is: ${params.otpCode}\n\nThis code expires in 5 minutes.`;
+    const text = `Hello ${params.name},\n\nYour email verification code for XYZ Education is: ${params.otpCode}\n\nThis code expires in 5 minutes.`;
 
     return { html, text };
 }
-

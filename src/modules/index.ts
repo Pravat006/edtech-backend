@@ -12,6 +12,8 @@ import userRoutes from "./users/user.routes";
 import wishlistRoutes from "./wishlist/wishlist.routes";
 import { referralRoutes } from "./referral/referral.routes";
 import { communityRoutes } from "./community/community.routes";
+import cmsRoutes from "./content/cms.routes";
+import { publicBannerRouter } from "./banner/banner.routes";
 
 const router = Router();
 
@@ -22,6 +24,8 @@ router.use("/user", userRoutes);
 // Admin Flow Routes
 router.use("/admin", adminRoutes);
 
+router.use("/content", cmsRoutes);
+router.use("/content", publicBannerRouter);
 router.use("/public", publicRoutes);
 router.use("/courses", courseRoutes);
 router.use("/enrollments", enrollmentRoutes);
