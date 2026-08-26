@@ -82,12 +82,17 @@ export const UpdateProgressSchema = z.object({
 });
 export type UpdateProgress = z.infer<typeof UpdateProgressSchema>;
 
+const ReorderItemSchema = z.object({
+    id: z.string().optional(),
+    blockId: z.string().optional(),
+    contentId: z.string().optional(),
+    order: z.coerce.number().int().positive().optional(),
+    newOrder: z.coerce.number().int().positive().optional(),
+});
+
 export const ReorderSchema = z.object({
-    orders: z.array(
-        z.object({
-            id: z.string().uuid(),
-            order: z.number().int().positive(),
-        })
-    ).min(1, "At least one order item is required"),
+    orders: z.array(ReorderItemSchema).optional(),
+    blocks: z.array(ReorderItemSchema).optional(),
+    contents: z.array(ReorderItemSchema).optional(),
 });
 export type ReorderPayload = z.infer<typeof ReorderSchema>;

@@ -25,6 +25,7 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1109.0",
         "@aws-sdk/s3-request-presigner": "^3.1109.0",
+        "@google/generative-ai": "^0.24.1",
         "@imagekit/nodejs": "^7.11.0",
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "7.9.1",

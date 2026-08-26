@@ -66,25 +66,60 @@ const EnvConfigSchema = z.object({
     IMAGEKIT_PRIVATE_KEY: z.string().trim().min(1).default("dummy_private_key"),
     IMAGEKIT_URL_ENDPOINT: z.string().trim().min(1).url().default("https://ik.imagekit.io/dummy"),
     IMAGEKIT_WEBHOOK_SECRET: z.string().trim().optional(),
+
+    // AI Doubt Solver Strategy Provider Options
+    AI_ENABLED: z.coerce.boolean().default(true),
+    AI_PROVIDER: z.enum(["gemini", "groq", "openrouter", "openai", "mock"]).default("mock"),
+    GEMINI_API_KEY: z.string().trim().optional(),
+    GEMINI_MODEL: z.string().trim().default("gemini-3.6-flash"),
+    GROQ_API_KEY: z.string().trim().optional(),
+    GROQ_MODEL: z.string().trim().default("llama-3.1-70b-versatile"),
+    OPENROUTER_API_KEY: z.string().trim().optional(),
+    OPENROUTER_MODEL: z.string().trim().default("meta-llama/llama-3.1-70b-instruct"),
+    OPENAI_API_KEY: z.string().trim().optional(),
+    OPENAI_MODEL: z.string().trim().default("gpt-4o-mini"),
+    AI_CREDIT_COST_QUICK: z.coerce.number().default(0.10),
+    AI_CREDIT_COST_DETAILED: z.coerce.number().default(0.25),
+    AI_CACHE_TTL_SECONDS: z.coerce.number().default(86400),
+    AI_PROMPT_VERSION: z.string().trim().default("v1"),
+    AI_INITIAL_WELCOME_CREDITS: z.coerce.number().default(5),
 });
 
 // Define the config type using Zod inference
 export type EnvConfig = z.infer<typeof EnvConfigSchema>;
 
-// Load raw configuration from environment variables
+// Load raw configuration from environment variables with automated Dev / Prod environment resolution
+const isProdEnvironment = process.env.NODE_ENV === "production";
+
+const resolvedDatabaseUrl = isProdEnvironment
+    ? process.env.DATABASE_URL
+    : (process.env.DEV_DATABASE_URL || "postgres://edtech:edtech_secret@127.0.0.1:5432/edtech_db");
+
+const resolvedRedisHost = isProdEnvironment
+    ? (process.env.REDIS_HOST || "localhost")
+    : (process.env.LOCAL_REDIS_HOST || "127.0.0.1");
+
+const resolvedRedisPort = isProdEnvironment
+    ? (process.env.REDIS_PORT || "6379")
+    : (process.env.LOCAL_REDIS_PORT || "6380");
+
+const resolvedRedisUrl = isProdEnvironment
+    ? (process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL)
+    : undefined;
+
 const rawConfig = {
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
     ADMIN_ORIGIN: process.env.ADMIN_ORIGIN,
     FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN,
     ADMIN_FRONTEND_URL: process.env.ADMIN_FRONTEND_URL,
-    DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_URL: resolvedDatabaseUrl,
     JWT_SECRET: process.env.JWT_SECRET,
     SESSION_SECRET: process.env.SESSION_SECRET,
-    REDIS_HOST: process.env.REDIS_HOST,
-    REDIS_PORT: process.env.REDIS_PORT,
+    REDIS_HOST: resolvedRedisHost,
+    REDIS_PORT: resolvedRedisPort,
     REDIS_DB: process.env.REDIS_DB,
-    REDIS_URL: process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL,
+    REDIS_URL: resolvedRedisUrl,
     AWS_REGION: process.env.AWS_REGION,
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
@@ -111,6 +146,21 @@ const rawConfig = {
     IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
     IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
     IMAGEKIT_WEBHOOK_SECRET: process.env.IMAGEKIT_WEBHOOK_SECRET,
+    AI_ENABLED: process.env.AI_ENABLED,
+    AI_PROVIDER: process.env.AI_PROVIDER,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_MODEL: process.env.GEMINI_MODEL,
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    GROQ_MODEL: process.env.GROQ_MODEL,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENAI_MODEL: process.env.OPENAI_MODEL,
+    AI_CREDIT_COST_QUICK: process.env.AI_CREDIT_COST_QUICK,
+    AI_CREDIT_COST_DETAILED: process.env.AI_CREDIT_COST_DETAILED,
+    AI_CACHE_TTL_SECONDS: process.env.AI_CACHE_TTL_SECONDS,
+    AI_PROMPT_VERSION: process.env.AI_PROMPT_VERSION,
+    AI_INITIAL_WELCOME_CREDITS: process.env.AI_INITIAL_WELCOME_CREDITS,
 };
 
 // Validate and parse configuration
@@ -174,6 +224,21 @@ export const {
     IMAGEKIT_PRIVATE_KEY,
     IMAGEKIT_URL_ENDPOINT,
     IMAGEKIT_WEBHOOK_SECRET,
+    AI_ENABLED,
+    AI_PROVIDER,
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GROQ_API_KEY,
+    GROQ_MODEL,
+    OPENROUTER_API_KEY,
+    OPENROUTER_MODEL,
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
+    AI_CREDIT_COST_QUICK,
+    AI_CREDIT_COST_DETAILED,
+    AI_CACHE_TTL_SECONDS,
+    AI_PROMPT_VERSION,
+    AI_INITIAL_WELCOME_CREDITS,
 } = envVars;
 
 export default envVars;

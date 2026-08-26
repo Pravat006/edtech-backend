@@ -6,7 +6,7 @@ export class CommunityController {
     public getDiscovery = async (req: Request, res: Response) => {
         const userId = req.user!.id;
         const data = await communityService.getDiscovery(userId);
-        return res.status(httpStatus.OK).json({
+        res.status(httpStatus.OK).json({
             success: true,
             data,
         });
@@ -16,7 +16,7 @@ export class CommunityController {
         const userId = req.user!.id;
         const query = req.query.query as string | undefined;
         const data = await communityService.searchPeers(userId, query);
-        return res.status(httpStatus.OK).json({
+        res.status(httpStatus.OK).json({
             success: true,
             data,
         });

@@ -5,7 +5,8 @@
       "src": "api/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**", "generated/prisma/**", "prisma/schema.prisma"]
+        "includeFiles": ["dist/**", "generated/prisma/**", "prisma/schema.prisma"],
+        "maxDuration": 60
       }
     }
   ],

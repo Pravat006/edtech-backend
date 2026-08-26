@@ -9,6 +9,7 @@ import adminSupportRoutes from "./support/admin.support.routes";
 import { adminReferralRoutes } from "./referral/admin.referral.routes";
 import adminCmsRoutes from "./cms/admin.cms.routes";
 import { adminBannerRouter } from "../banner/banner.routes";
+import adminAIChatRoutes from "./ai-chat/admin-ai-chat.routes";
 
 import { verifyAdmin, requirePermission } from "@/middlewares/verifyAdmin";
 import { validateRequest } from "@/middlewares/validateRequest";
@@ -27,6 +28,7 @@ router.use("/support", adminSupportRoutes);
 router.use("/referrals", adminReferralRoutes);
 router.use("/content", adminCmsRoutes);
 router.use("/content", adminBannerRouter);
+router.use("/ai-chat", adminAIChatRoutes);
 
 router.get(
     "/verifications/pending",

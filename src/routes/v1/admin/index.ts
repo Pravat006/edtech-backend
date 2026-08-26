@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { authenticateAdmin } from "@/middlewares/admin.middleware";
+import adminAIChatRoutes from "@/modules/admin/ai-chat/admin-ai-chat.routes";
 
 const router = Router();
 
 router.use(authenticateAdmin);
 
-// add admin authenticated routes here
+router.use("/ai-chat", adminAIChatRoutes);
 
 export default router;

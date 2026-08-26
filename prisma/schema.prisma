@@ -52,6 +52,7 @@ model User {
   progress          LessonProgress[]
   quizAttempts      QuizAttempt[]
   aiChatMessages    AiChatMessage[]
+  chatConversations ChatConversation[]
   communityMessages CommunityMessage[]
   reportsFiled      MessageReport[]    @relation("ReportedBy")
   notifications     Notification[]
@@ -116,6 +117,7 @@ model Course {
   communityMessages CommunityMessage[]
   testimonials      Testimonial[]
   wishlistItems     Wishlist[]
+  chatConversations ChatConversation[]
 
   @@index([subject])
   @@index([language])
@@ -152,6 +154,7 @@ model Lesson {
   quiz           Quiz?
   progress       LessonProgress[]
   aiChatMessages AiChatMessage[]
+  chatConversations ChatConversation[]
 
   @@unique([moduleId, order])
   @@index([moduleId])
@@ -335,6 +338,52 @@ model AiChatMessage {
   @@index([lessonId])
 }
 
+model ChatConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String?
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId  String?
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([courseId])
+  @@index([lessonId])
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           ChatRole
+  content        String
+  fromCache      Boolean          @default(false)
+
+  inputTokens   Int?
+  outputTokens  Int?
+  totalTokens   Int?
+  provider      String?
+  model         String?
+  promptVersion String?
+  creditCost    Int              @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
 model CommunityMessage {
   id       String @id @default(uuid())
   courseId String
@@ -384,11 +433,13 @@ model Review {
 }
 
 model Wallet {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balanceCredits Int      @default(0)
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referralCredits Int      @default(5)
+  aiCredits       Int      @default(0)
+  balanceCredits  Int      @default(5)
+  updatedAt       DateTime @updatedAt
 }
 
 model MediaAsset {
@@ -460,8 +511,8 @@ model Referral {
 
 model ReferralConfig {
   id                    String   @id @default("default")
-  referrerRewardCredits Int      @default(100)
-  refereeRewardCredits  Int      @default(50)
+  referrerRewardCredits Int      @default(10)
+  refereeRewardCredits  Int      @default(5)
   minPurchaseAmount     Decimal  @default(0) @db.Decimal(10, 2)
   isEnabled             Boolean  @default(true)
   updatedAt             DateTime @updatedAt
@@ -605,6 +656,23 @@ enum TransactionType {
   REFERRAL_CREDIT // credits earned by referring someone
   REFERRAL_REDEMPTION // credits spent as course discount at checkout
   AI_CREDIT_USAGE // credits spent on AI doubt-solving features
+  PROMOTIONAL_CREDIT // welcome bonus credits
+  AI_CREDIT_PURCHASE // direct purchase of dedicated AI credit packages
+}
+
+model AICreditPackage {
+  id           String   @id @default(uuid())
+  name         String
+  price        Decimal  @db.Decimal(10, 2)
+  credits      Int
+  bonusCredits Int      @default(0)
+  description  String?
+  popular      Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 enum MediaType {

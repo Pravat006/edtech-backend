@@ -13,6 +13,11 @@ declare global {
 
 const connectionString = DATABASE_URL;
 
+if (process.env.NODE_ENV === "production" && (connectionString.includes("localhost") || connectionString.includes("127.0.0.1"))) {
+    logger.error("[PRISMA] CRITICAL ERROR: Production environment is configured with a local DATABASE_URL!");
+    throw new Error("[PRISMA] Cannot use local database in production environment");
+}
+
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 

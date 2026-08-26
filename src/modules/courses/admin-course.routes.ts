@@ -11,6 +11,7 @@ router.post("/", adminCourseController.createCourse);
 router.put("/:courseId", adminCourseController.updateCourse);
 router.patch("/:courseId/publish", adminCourseController.togglePublishCourse);
 
+router.get("/:courseId/modules", adminCourseController.getCourseModules);
 router.post("/:courseId/modules", adminCourseController.createModule);
 router.put("/:courseId/modules/:moduleId", adminCourseController.updateModule);
 router.delete("/:courseId/modules/:moduleId", adminCourseController.deleteModule);
@@ -24,6 +25,17 @@ router.delete(
     adminCourseController.deleteLesson
 );
 
+// Reorder endpoints must be defined BEFORE parameterized :contentId endpoints to prevent "reorder" from matching :contentId
+router.patch("/:courseId/modules/reorder", adminCourseController.reorderModules);
+router.patch("/:courseId/modules/:moduleId/lessons/reorder", adminCourseController.reorderLessons);
+router.patch(
+    "/:courseId/modules/:moduleId/lessons/:lessonId/contents/reorder",
+    adminCourseController.reorderLessonContents
+);
+router.patch("/lessons/:lessonId/blocks/reorder", adminCourseController.reorderLessonBlocks);
+router.patch("/lessons/:lessonId/contents/reorder", adminCourseController.reorderLessonBlocks);
+router.patch("/:courseId/lessons/:lessonId/blocks/reorder", adminCourseController.reorderLessonBlocks);
+
 router.post(
     "/:courseId/modules/:moduleId/lessons/:lessonId/contents",
     adminCourseController.addLessonContent
@@ -35,13 +47,6 @@ router.patch(
 router.delete(
     "/:courseId/modules/:moduleId/lessons/:lessonId/contents/:contentId",
     adminCourseController.deleteLessonContent
-);
-
-router.patch("/:courseId/modules/reorder", adminCourseController.reorderModules);
-router.patch("/:courseId/modules/:moduleId/lessons/reorder", adminCourseController.reorderLessons);
-router.patch(
-    "/:courseId/modules/:moduleId/lessons/:lessonId/contents/reorder",
-    adminCourseController.reorderLessonContents
 );
 
 router.get("/:courseId/analytics", adminCourseController.getCourseAnalytics);

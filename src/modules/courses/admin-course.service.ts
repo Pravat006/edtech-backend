@@ -314,6 +314,105 @@ class AdminCourseService {
     }
 
     /**
+     * GET /v1/admin/courses/:courseId/modules
+     * Paginated list of modules for a course.
+     */
+    public async getCourseModules(
+        courseId: string,
+        adminId: string,
+        role: string,
+        query?: { page?: number; limit?: number; search?: string }
+    ) {
+        await this.verifyCourseOwnership(courseId, adminId, role);
+
+        const page = query?.page && query.page > 0 ? query.page : 1;
+        const limit = query?.limit && query.limit > 0 ? Math.min(query.limit, 100) : 10;
+        const skip = (page - 1) * limit;
+
+        const whereClause: any = { courseId };
+        if (query?.search) {
+            whereClause.title = { contains: query.search, mode: "insensitive" };
+        }
+
+        const [total, modules] = await Promise.all([
+            db.module.count({ where: whereClause }),
+            db.module.findMany({
+                where: whereClause,
+                orderBy: { order: "asc" },
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    courseId: true,
+                    title: true,
+                    order: true,
+                    _count: {
+                        select: { lessons: true }
+                    },
+                    lessons: {
+                        orderBy: { order: "asc" },
+                        select: {
+                            id: true,
+                            title: true,
+                            order: true,
+                            durationSec: true,
+                            unlockAfterDays: true,
+                            isFreePreview: true,
+                            _count: { select: { contents: true } },
+                            contents: {
+                                orderBy: { order: "asc" },
+                                select: {
+                                    id: true,
+                                    type: true,
+                                    order: true,
+                                    title: true,
+                                    body: true,
+                                    mediaId: true,
+                                    media: {
+                                        select: {
+                                            id: true,
+                                            storageKey: true,
+                                            url: true,
+                                            mimeType: true,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        ]);
+
+        return {
+            modules: modules.map(mod => ({
+                id: mod.id,
+                courseId: mod.courseId,
+                title: mod.title,
+                order: mod.order,
+                lessonsCount: mod._count.lessons,
+                lessons: mod.lessons.map(lesson => ({
+                    id: lesson.id,
+                    title: lesson.title,
+                    order: lesson.order,
+                    durationSec: lesson.durationSec,
+                    unlockAfterDays: lesson.unlockAfterDays,
+                    isFreePreview: lesson.isFreePreview,
+                    blocksCount: lesson._count.contents,
+                    contents: lesson.contents,
+                    blocks: lesson.contents,
+                }))
+            })),
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit) || 1,
+            }
+        };
+    }
+
+    /**
      * POST /v1/admin/courses/:courseId/modules
      * Add a module to a course.
      */
@@ -1098,6 +1197,47 @@ class AdminCourseService {
         });
 
         return { message: "Lesson contents reordered successfully" };
+    }
+
+    /**
+     * PATCH /v1/admin/courses/lessons/:lessonId/blocks/reorder
+     * Reorders content blocks (LessonContent) within a lesson directly by lessonId.
+     */
+    public async reorderLessonBlocks(
+        lessonId: string,
+        adminId: string,
+        role: string,
+        orders: { id: string; order: number }[]
+    ) {
+        const lesson = await db.lesson.findUnique({
+            where: { id: lessonId },
+            select: { id: true, module: { select: { courseId: true } } },
+        });
+
+        if (!lesson) {
+            throw new APIError(httpStatus.NOT_FOUND, "Lesson not found");
+        }
+
+        await this.verifyCourseOwnership(lesson.module.courseId, adminId, role);
+
+        await db.$transaction(async (tx) => {
+            // Step 1: Set negative temp orders to avoid unique constraint conflicts
+            for (let i = 0; i < orders.length; i++) {
+                await tx.lessonContent.update({
+                    where: { id: orders[i].id },
+                    data: { order: -(i + 1000) },
+                });
+            }
+            // Step 2: Set target final orders
+            for (const item of orders) {
+                await tx.lessonContent.update({
+                    where: { id: item.id },
+                    data: { order: item.order },
+                });
+            }
+        });
+
+        return { message: "Lesson blocks reordered successfully" };
     }
 }
 

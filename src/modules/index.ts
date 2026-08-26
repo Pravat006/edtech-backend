@@ -14,6 +14,7 @@ import { referralRoutes } from "./referral/referral.routes";
 import { communityRoutes } from "./community/community.routes";
 import cmsRoutes from "./content/cms.routes";
 import { publicBannerRouter } from "./banner/banner.routes";
+import aiChatRoutes from "./ai-chat/ai-chat.routes";
 
 const router = Router();
 
@@ -36,6 +37,7 @@ router.use("/wishlist", wishlistRoutes);
 router.use("/upload", uploadRouter);
 router.use("/referrals", referralRoutes);
 router.use("/community", communityRoutes);
+router.use("/ai-chat", aiChatRoutes);
 
 export default router;
 

@@ -6,13 +6,22 @@ class RedisService {
     private client: Redis;
 
     constructor() {
-        this.client = envVars.REDIS_URL 
-            ? new Redis(envVars.REDIS_URL) 
-            : new Redis({
+        if (envVars.NODE_ENV === 'production' && !envVars.REDIS_URL) {
+            logger.error('[Redis] CRITICAL ERROR: REDIS_URL environment variable is missing in production environment!');
+            throw new Error('[Redis] Missing REDIS_URL in production environment');
+        }
+
+        if (envVars.REDIS_URL) {
+            logger.info(`[Redis] Initializing Cloud Upstash Redis client (production target).`);
+            this.client = new Redis(envVars.REDIS_URL);
+        } else {
+            logger.info(`[Redis] Initializing Local Docker Redis client at ${envVars.REDIS_HOST}:${envVars.REDIS_PORT} (development target).`);
+            this.client = new Redis({
                 host: envVars.REDIS_HOST,
                 port: Number(envVars.REDIS_PORT),
                 db: Number(envVars.REDIS_DB),
             });
+        }
 
         this.client.on('connect', () => logger.info('[Redis] Connecting...'));
         this.client.on('ready', () => logger.info('[Redis] Connected successfully.'));

@@ -312,48 +312,128 @@ export const getCoursePreview = async (req: Request, res: Response) => {
 
 export const reorderModules = async (req: Request, res: Response) => {
     const { courseId } = req.params;
-    const parsed = ReorderSchema.safeParse(req.body);
+    const bodyToParse = Array.isArray(req.body) ? { orders: req.body } : req.body;
+    const parsed = ReorderSchema.safeParse(bodyToParse);
     if (!parsed.success) {
         throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
     }
+    const rawItems = parsed.data.orders || parsed.data.blocks || parsed.data.contents || [];
+    const normalizedOrders = rawItems.map(item => ({
+        id: (item.id || item.blockId || item.contentId)!,
+        order: (item.order !== undefined ? item.order : item.newOrder)!,
+    })).filter(item => item.id && item.order !== undefined);
+
+    if (normalizedOrders.length === 0) {
+        throw new APIError(httpStatus.BAD_REQUEST, "No valid module orders provided");
+    }
+
     const result = await adminCourseService.reorderModules(
         courseId,
         req.admin!.id,
         req.admin!.role,
-        parsed.data.orders
+        normalizedOrders
     );
     res.status(httpStatus.OK).json({ success: true, message: result.message });
 };
 
 export const reorderLessons = async (req: Request, res: Response) => {
     const { courseId, moduleId } = req.params;
-    const parsed = ReorderSchema.safeParse(req.body);
+    const bodyToParse = Array.isArray(req.body) ? { orders: req.body } : req.body;
+    const parsed = ReorderSchema.safeParse(bodyToParse);
     if (!parsed.success) {
         throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
     }
+    const rawItems = parsed.data.orders || parsed.data.blocks || parsed.data.contents || [];
+    const normalizedOrders = rawItems.map(item => ({
+        id: (item.id || item.blockId || item.contentId)!,
+        order: (item.order !== undefined ? item.order : item.newOrder)!,
+    })).filter(item => item.id && item.order !== undefined);
+
+    if (normalizedOrders.length === 0) {
+        throw new APIError(httpStatus.BAD_REQUEST, "No valid lesson orders provided");
+    }
+
     const result = await adminCourseService.reorderLessons(
         courseId,
         moduleId,
         req.admin!.id,
         req.admin!.role,
-        parsed.data.orders
+        normalizedOrders
     );
     res.status(httpStatus.OK).json({ success: true, message: result.message });
 };
 
+export const getCourseModules = async (req: Request, res: Response) => {
+    const { courseId } = req.params;
+    const { page, limit, search } = req.query;
+
+    const result = await adminCourseService.getCourseModules(
+        courseId,
+        req.admin!.id,
+        req.admin!.role,
+        {
+            page: page ? parseInt(page as string, 10) : 1,
+            limit: limit ? parseInt(limit as string, 10) : 10,
+            search: search as string,
+        }
+    );
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        data: result,
+    });
+};
+
 export const reorderLessonContents = async (req: Request, res: Response) => {
     const { courseId, moduleId, lessonId } = req.params;
-    const parsed = ReorderSchema.safeParse(req.body);
+    const bodyToParse = Array.isArray(req.body) ? { orders: req.body } : req.body;
+    const parsed = ReorderSchema.safeParse(bodyToParse);
     if (!parsed.success) {
         throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
     }
+    const rawItems = parsed.data.orders || parsed.data.blocks || parsed.data.contents || [];
+    const normalizedOrders = rawItems.map(item => ({
+        id: (item.id || item.blockId || item.contentId)!,
+        order: (item.order !== undefined ? item.order : item.newOrder)!,
+    })).filter(item => item.id && item.order !== undefined);
+
+    if (normalizedOrders.length === 0) {
+        throw new APIError(httpStatus.BAD_REQUEST, "No valid block orders provided");
+    }
+
     const result = await adminCourseService.reorderLessonContents(
         courseId,
         moduleId,
         lessonId,
         req.admin!.id,
         req.admin!.role,
-        parsed.data.orders
+        normalizedOrders
+    );
+    res.status(httpStatus.OK).json({ success: true, message: result.message });
+};
+
+export const reorderLessonBlocks = async (req: Request, res: Response) => {
+    const { lessonId } = req.params;
+    const bodyToParse = Array.isArray(req.body) ? { orders: req.body } : req.body;
+    const parsed = ReorderSchema.safeParse(bodyToParse);
+    if (!parsed.success) {
+        throw new APIError(httpStatus.BAD_REQUEST, parsed.error.issues[0].message);
+    }
+    const rawItems = parsed.data.orders || parsed.data.blocks || parsed.data.contents || [];
+    const normalizedOrders = rawItems.map(item => ({
+        id: (item.id || item.blockId || item.contentId)!,
+        order: (item.order !== undefined ? item.order : item.newOrder)!,
+    })).filter(item => item.id && item.order !== undefined);
+
+    if (normalizedOrders.length === 0) {
+        throw new APIError(httpStatus.BAD_REQUEST, "No valid block orders provided");
+    }
+
+    const result = await adminCourseService.reorderLessonBlocks(
+        lessonId,
+        req.admin!.id,
+        req.admin!.role,
+        normalizedOrders
     );
     res.status(httpStatus.OK).json({ success: true, message: result.message });
 };
