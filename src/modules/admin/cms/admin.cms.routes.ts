@@ -7,6 +7,7 @@ import {
   updatePageAdmin,
   revertPageAdmin,
   deletePageAdmin,
+  togglePageStatusAdmin,
 } from "./admin.cms.controller";
 
 const router = Router();
@@ -48,6 +49,12 @@ router.delete(
   "/pages/:id",
   requirePermission("SETTINGS_WRITE"),
   deletePageAdmin
+);
+
+router.patch(
+  "/pages/:id/status",
+  requirePermission("SETTINGS_WRITE"),
+  togglePageStatusAdmin
 );
 
 export default router;

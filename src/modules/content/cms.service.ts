@@ -237,7 +237,7 @@ export class CmsService {
   }
 
   /**
-   * Delete a page (Admin)
+   * Deactivate a page (Admin) - Soft unpublish instead of hard delete
    */
   async deletePageAdmin(id: string) {
     const page = await db.cmsPage.findUnique({ where: { id } });
@@ -245,9 +245,36 @@ export class CmsService {
       throw new APIError(httpStatus.NOT_FOUND, "CMS Page not found");
     }
 
-    await db.cmsPage.delete({ where: { id } });
+    await db.cmsPage.update({
+      where: { id },
+      data: { isPublished: false },
+    });
     await this.clearCache(page.slug);
-    return { success: true, message: `Page '${page.title}' deleted successfully` };
+    return {
+      success: true,
+      message: `CMS page '${page.title}' has been deactivated (unpublished) instead of hard-deleted to preserve content history.`,
+    };
+  }
+
+  /**
+   * Toggle publication status of a CMS page (Admin)
+   */
+  async togglePageStatusAdmin(id: string, isPublished: boolean) {
+    const page = await db.cmsPage.findUnique({ where: { id } });
+    if (!page) {
+      throw new APIError(httpStatus.NOT_FOUND, "CMS Page not found");
+    }
+
+    const updated = await db.cmsPage.update({
+      where: { id },
+      data: { isPublished },
+    });
+    await this.clearCache(page.slug);
+    return {
+      success: true,
+      message: `CMS page '${updated.title}' is now ${isPublished ? "Published" : "Deactivated (Draft)"}.`,
+      data: updated,
+    };
   }
 
   /**

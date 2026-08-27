@@ -88,3 +88,61 @@ export const getMe = async (req: Request, res: Response) => {
         data: req.admin,
     });
 };
+
+export const changePassword = async (req: Request, res: Response) => {
+    if (!req.admin) {
+        throw new APIError(httpStatus.UNAUTHORIZED, "Not authenticated");
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        throw new APIError(httpStatus.BAD_REQUEST, "Current password and new password are required");
+    }
+
+    const result = await adminAuthService.changeSuperAdminPassword(req.admin.id, currentPassword, newPassword);
+
+    res.clearCookie("admin_access_token", COOKIE_OPTIONS);
+    res.clearCookie("admin_refresh_token", COOKIE_OPTIONS);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: result.message,
+    });
+};
+
+export const initiateEmailChange = async (req: Request, res: Response) => {
+    if (!req.admin) {
+        throw new APIError(httpStatus.UNAUTHORIZED, "Not authenticated");
+    }
+
+    const { newEmail } = req.body;
+    if (!newEmail) {
+        throw new APIError(httpStatus.BAD_REQUEST, "New email address is required");
+    }
+
+    const result = await adminAuthService.initiateSuperAdminEmailChange(req.admin.id, newEmail);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: result.message,
+        devNotice: result.devNotice,
+    });
+};
+
+export const verifyEmailChange = async (req: Request, res: Response) => {
+    if (!req.admin) {
+        throw new APIError(httpStatus.UNAUTHORIZED, "Not authenticated");
+    }
+
+    const { newEmail, otp } = req.body;
+    if (!newEmail || !otp) {
+        throw new APIError(httpStatus.BAD_REQUEST, "New email and 6-digit OTP are required");
+    }
+
+    const result = await adminAuthService.verifySuperAdminEmailChange(req.admin.id, newEmail, otp);
+
+    res.status(httpStatus.OK).json({
+        success: true,
+        message: result.message,
+    });
+};

@@ -20,11 +20,15 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
 
         const admin = await db.admin.findUnique({
             where: { id: decoded.id },
-            select: { id: true, role: true, name: true, email: true, permissions: true }
+            select: { id: true, role: true, name: true, email: true, permissions: true, isActive: true }
         });
 
         if (!admin) {
             return next(new APIError(httpStatus.UNAUTHORIZED, "Admin account no longer exists"));
+        }
+
+        if (admin.isActive === false) {
+            return next(new APIError(httpStatus.FORBIDDEN, "Your administrator account has been deactivated. Please contact Super Admin."));
         }
 
         req.admin = admin as any;

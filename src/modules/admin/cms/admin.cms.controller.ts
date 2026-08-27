@@ -89,3 +89,18 @@ export const deletePageAdmin = async (req: Request, res: Response, next: NextFun
     next(error);
   }
 };
+
+export const togglePageStatusAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { isPublished } = req.body;
+    const result = await cmsService.togglePageStatusAdmin(id as string, Boolean(isPublished));
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: result.message,
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

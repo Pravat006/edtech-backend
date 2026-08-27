@@ -13,6 +13,7 @@ model Admin {
   name        String
   email       String            @unique
   password    String
+  isActive    Boolean           @default(true)
   permissions AdminPermission[] @default([])
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -206,8 +207,8 @@ model Enrollment {
 
 model Payment {
   id           String      @id @default(uuid())
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   enrollmentId String?     @unique
   enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id])
 
@@ -228,8 +229,8 @@ model Payment {
 
 model Transaction {
   id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   paymentId String?
   payment   Payment? @relation(fields: [paymentId], references: [id])
 
@@ -388,8 +389,8 @@ model CommunityMessage {
   id       String @id @default(uuid())
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String?
+  user     User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   message   String
   createdAt DateTime @default(now())
@@ -834,8 +835,8 @@ enum TicketSenderType {
 model SupportTicket {
   id           String         @id @default(uuid())
   ticketNumber String         @unique
-  userId       String
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   subject      String
   category     TicketCategory @default(OTHER)

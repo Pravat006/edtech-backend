@@ -17,7 +17,7 @@ export const VerifyOtpSchema = z.object({
         .string()
         .min(10, "Phone number must be at least 10 digits")
         .regex(phoneRegex, "Invalid phone format"),
-    otp: z.string().min(4, "OTP is required"),
+    otp: z.string().length(6, "OTP must be exactly 6 digits"),
 });
 export type VerifyOtp = z.infer<typeof VerifyOtpSchema>;
 

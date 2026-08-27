@@ -206,7 +206,7 @@ export class AdminSupportService {
         });
 
         // Send Push Notification if user has a registered token and it's a public reply
-        if (!isInternalNote && ticket.user.expoPushToken) {
+        if (!isInternalNote && ticket.user?.expoPushToken) {
             pushNotificationService.sendPushNotification({
                 to: ticket.user.expoPushToken,
                 title: `Support Reply: #${ticket.ticketNumber}`,

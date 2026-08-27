@@ -5,7 +5,7 @@ export class MockOtpProvider implements IOtpProvider {
     public name = "mock";
 
     public async sendOtp(phoneNumber: string) {
-        logger.info(`[Mock OTP Provider] Sent test OTP to ${phoneNumber}. Any 4-digit OTP will be accepted.`);
+        logger.info(`[Mock OTP Provider] Sent test OTP to ${phoneNumber}. Any 6-digit OTP will be accepted.`);
         return { status: "pending", expiresIn: 300 };
     }
 

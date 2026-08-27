@@ -54,3 +54,16 @@ export const VerifyEmailChangeSchema = z.object({
     code: z.string().min(4, "OTP code must be at least 4 digits"),
 });
 export type VerifyEmailChange = z.infer<typeof VerifyEmailChangeSchema>;
+
+export const InitiateAccountDeletionSchema = z.object({
+    credential: z.string().min(3, "Email or phone credential is required"),
+    password: z.string().min(1, "Password is required for deletion verification"),
+});
+export type InitiateAccountDeletion = z.infer<typeof InitiateAccountDeletionSchema>;
+
+export const ConfirmAccountDeletionSchema = z.object({
+    credential: z.string().optional(),
+    otp: z.string().length(6, "OTP code must be exactly 6 digits"),
+});
+export type ConfirmAccountDeletion = z.infer<typeof ConfirmAccountDeletionSchema>;
+

@@ -22,6 +22,7 @@ class AdminManagementService {
                 email: data.email,
                 password: hashedPassword,
                 role: "SUB",
+                isActive: true,
                 permissions: data.permissions || [],
             }
         });
@@ -43,11 +44,55 @@ class AdminManagementService {
         return safeAdmin;
     }
 
-    public async listSubAdmins() {
-        return await db.admin.findMany({
-            where: { role: "SUB" },
-            select: { id: true, name: true, email: true, role: true, permissions: true, createdAt: true, updatedAt: true }
-        });
+    public async listSubAdmins(params?: { status?: "all" | "active" | "inactive"; search?: string; page?: number; limit?: number }) {
+        const page = Math.max(1, params?.page || 1);
+        const limit = Math.max(1, Math.min(100, params?.limit || 10));
+        const skip = (page - 1) * limit;
+
+        const where: any = { role: "SUB" };
+
+        if (params?.status === "active") {
+            where.isActive = true;
+        } else if (params?.status === "inactive") {
+            where.isActive = false;
+        }
+
+        if (params?.search) {
+            where.OR = [
+                { name: { contains: params.search, mode: "insensitive" } },
+                { email: { contains: params.search, mode: "insensitive" } },
+            ];
+        }
+
+        const [total, subAdmins] = await Promise.all([
+            db.admin.count({ where }),
+            db.admin.findMany({
+                where,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    isActive: true,
+                    permissions: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+                orderBy: { createdAt: "desc" },
+                skip,
+                take: limit,
+            }),
+        ]);
+
+        return {
+            subAdmins,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit) || 1,
+            },
+        };
     }
 
     public async updateSubAdminPermissions(id: string, permissions: AdminPermission[]) {
@@ -58,19 +103,122 @@ class AdminManagementService {
         const updated = await db.admin.update({
             where: { id },
             data: { permissions },
-            select: { id: true, name: true, email: true, role: true, permissions: true, updatedAt: true }
+            select: { id: true, name: true, email: true, role: true, isActive: true, permissions: true, updatedAt: true }
         });
 
         return updated;
     }
 
-    public async revokeSubAdmin(id: string) {
-        const target = await db.admin.findUnique({ where: { id } });
+    public async deactivateSubAdmin(superAdminId: string, subAdminId: string) {
+        const target = await db.admin.findUnique({ where: { id: subAdminId } });
         if (!target) throw new APIError(httpStatus.NOT_FOUND, "Sub-admin not found");
-        if (target.role === "SUPER") throw new APIError(httpStatus.FORBIDDEN, "Cannot delete a SUPER admin");
+        if (target.role === "SUPER") {
+            throw new APIError(httpStatus.BAD_REQUEST, "Super Admin account cannot be deactivated.");
+        }
+        if (superAdminId === subAdminId) {
+            throw new APIError(httpStatus.BAD_REQUEST, "Cannot deactivate your own administrator account.");
+        }
 
-        await db.admin.delete({ where: { id } });
-        return true;
+        // Soft deactivation
+        await db.admin.update({
+            where: { id: subAdminId },
+            data: { isActive: false },
+        });
+
+        // Reassign all open / in_progress support tickets back to unassigned queue
+        await db.supportTicket.updateMany({
+            where: { assignedAdminId: subAdminId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+            data: { assignedAdminId: null },
+        });
+
+        // Revoke Redis token session
+        const { redis } = await import("@/config/redis");
+        await redis.deleteValue(`admin:${subAdminId}`);
+
+        return {
+            success: true,
+            message: `Sub-admin '${target.name}' has been deactivated. Open support tickets reassigned to unassigned queue.`,
+        };
+    }
+
+    public async activateSubAdmin(superAdminId: string, subAdminId: string) {
+        const target = await db.admin.findUnique({ where: { id: subAdminId } });
+        if (!target) throw new APIError(httpStatus.NOT_FOUND, "Sub-admin not found");
+        if (target.role === "SUPER") {
+            throw new APIError(httpStatus.BAD_REQUEST, "Super Admin account cannot be altered here.");
+        }
+
+        await db.admin.update({
+            where: { id: subAdminId },
+            data: { isActive: true },
+        });
+
+        return {
+            success: true,
+            message: `Sub-admin '${target.name}' has been reactivated.`,
+        };
+    }
+
+    public async reassignSubAdmin(
+        superAdminId: string,
+        subAdminId: string,
+        data: { name: string; email: string; password?: string; permissions?: AdminPermission[] }
+    ) {
+        const target = await db.admin.findUnique({ where: { id: subAdminId } });
+        if (!target) throw new APIError(httpStatus.NOT_FOUND, "Sub-admin account seat not found");
+        if (target.role === "SUPER") {
+            throw new APIError(httpStatus.BAD_REQUEST, "Super Admin account cannot be reassigned.");
+        }
+
+        const cleanEmail = data.email.toLowerCase().trim();
+        const existingEmail = await db.admin.findFirst({
+            where: {
+                email: cleanEmail,
+                NOT: { id: subAdminId },
+            },
+        });
+
+        if (existingEmail) {
+            throw new APIError(httpStatus.CONFLICT, `Email '${cleanEmail}' is already assigned to another admin account.`);
+        }
+
+        const updateData: any = {
+            name: data.name,
+            email: cleanEmail,
+            isActive: true, // Auto-reactivate seat for replacement staff
+        };
+
+        if (data.password) {
+            updateData.password = await argon2.hash(data.password);
+        }
+
+        if (data.permissions) {
+            updateData.permissions = data.permissions;
+        }
+
+        const updated = await db.admin.update({
+            where: { id: subAdminId },
+            data: updateData,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isActive: true,
+                permissions: true,
+                updatedAt: true,
+            },
+        });
+
+        // Flush old session cache in Redis
+        const { redis } = await import("@/config/redis");
+        await redis.deleteValue(`admin:${subAdminId}`);
+
+        return {
+            success: true,
+            message: `Sub-admin account seat successfully reassigned to '${updated.name}' (${updated.email}). Account reactivated.`,
+            admin: updated,
+        };
     }
 }
 

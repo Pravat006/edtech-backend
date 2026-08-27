@@ -253,6 +253,253 @@ class UserService {
             user: updatedUser,
         };
     }
+
+    /**
+     * Step 1: Initiate Self Account Deletion Request
+     * 1. Validates input credential (email or phone number) against logged-in user.
+     * 2. Verifies account password via argon2.
+     * 3. Generates 6-digit OTP, saves in Redis (10 min TTL).
+     * 4. Sends SMS/Email OTP to user.
+     */
+    public async initiateUserAccountDeletion(
+        userId: string | null,
+        data: { credential: string; password: string }
+    ) {
+        const rawCred = data.credential.trim();
+        const cleanEmail = rawCred.toLowerCase();
+        const formattedInputPhone = rawCred.startsWith("+") ? rawCred : `+91${rawCred.replace(/^0+/, "")}`;
+
+        let user = null;
+        if (userId) {
+            user = await db.user.findUnique({
+                where: { id: userId },
+                select: { id: true, name: true, email: true, phoneNumber: true, password: true },
+            });
+        }
+
+        if (!user) {
+            user = await db.user.findFirst({
+                where: {
+                    OR: [
+                        { email: cleanEmail },
+                        { phoneNumber: rawCred },
+                        { phoneNumber: formattedInputPhone },
+                    ],
+                },
+                select: { id: true, name: true, email: true, phoneNumber: true, password: true },
+            });
+        }
+
+        if (!user) {
+            throw new APIError(httpStatus.NOT_FOUND, "User account not found");
+        }
+
+        // 1. Verify Credential Match (Email or Phone Number)
+        const userEmail = user.email ? user.email.toLowerCase().trim() : null;
+        const userPhone = user.phoneNumber.trim();
+
+        const isEmailMatch = userEmail ? userEmail === cleanEmail : false;
+        const isPhoneMatch =
+            userPhone === rawCred ||
+            userPhone === formattedInputPhone ||
+            userPhone.slice(-10) === rawCred.slice(-10);
+
+        if (!isEmailMatch && !isPhoneMatch) {
+            throw new APIError(
+                httpStatus.BAD_REQUEST,
+                "The provided credential does not match your registered email address or phone number."
+            );
+        }
+
+        // 2. Verify Password
+        if (user.password) {
+            const argon2 = await import("argon2");
+            const isValidPassword = await argon2.verify(user.password, data.password);
+            if (!isValidPassword) {
+                throw new APIError(httpStatus.UNAUTHORIZED, "Invalid password. Account deletion request denied.");
+            }
+        }
+
+        // 3. Generate 6-digit Deletion OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const { redis } = await import("@/config/redis");
+        const redisKeyById = `delete-account:otp:${user.id}`;
+        const redisKeyByCred = `delete-account:otp:cred:${cleanEmail}`;
+        const redisKeyByCode = `delete-account:otp:code:${otpCode}`;
+
+        const method = isPhoneMatch ? "SMS" : "EMAIL";
+        const target = isPhoneMatch ? user.phoneNumber : user.email!;
+
+        const payload = JSON.stringify({ userId: user.id, otp: otpCode, method, target, credential: rawCred });
+
+        // Store by userId, credential & OTP code for 10 minutes TTL
+        await redis.setValue(redisKeyById, payload, 10 * 60);
+        await redis.setValue(redisKeyByCred, payload, 10 * 60);
+        await redis.setValue(redisKeyByCode, payload, 10 * 60);
+
+        // 4. Dispatch OTP via SMS or Email
+        const { logger } = await import("@/config/logger");
+        logger.info(`[AccountDeletion] Generated OTP for user ${user.id} (${method}: ${target}): ${otpCode}`);
+
+        if (isPhoneMatch) {
+            const { smsService } = await import("@/services/sms.service");
+            await smsService.sendOtp(user.phoneNumber).catch((err) => {
+                logger.error(`[AccountDeletion] Failed to send SMS OTP to ${user.phoneNumber}:`, err);
+            });
+        } else {
+            const { emailService } = await import("@/modules/email/email.service");
+            await emailService.sendEmailVerificationOtp({
+                to: user.email!,
+                name: user.name || "Learner",
+                otpCode,
+            });
+        }
+
+        return {
+            success: true,
+            message: `Credential and password verified. A 6-digit deletion OTP has been sent via ${method} to ${target}.`,
+            method,
+            target,
+            devOtp: process.env.NODE_ENV === "development" ? otpCode : undefined,
+        };
+    }
+
+    /**
+     * Step 2: Confirm Account Deletion via OTP
+     * 1. Verifies 6-digit OTP from Redis.
+     * 2. Triggers permanent account deletion pipeline.
+     */
+    public async confirmUserAccountDeletion(userId: string | null, otp: string, credential?: string) {
+        const { redis } = await import("@/config/redis");
+        const cleanOtp = otp.trim();
+
+        let storedRaw: string | null = null;
+        if (userId) {
+            storedRaw = await redis.getValue(`delete-account:otp:${userId}`);
+        }
+
+        if (!storedRaw && credential) {
+            storedRaw = await redis.getValue(`delete-account:otp:cred:${credential.trim().toLowerCase()}`);
+        }
+
+        if (!storedRaw && cleanOtp) {
+            storedRaw = await redis.getValue(`delete-account:otp:code:${cleanOtp}`);
+        }
+
+        if (!storedRaw) {
+            throw new APIError(
+                httpStatus.BAD_REQUEST,
+                "Invalid or expired account deletion OTP. Please initiate deletion again."
+            );
+        }
+
+        let storedData: { userId: string; otp: string; method: string; target: string; credential?: string };
+        try {
+            storedData = JSON.parse(storedRaw);
+        } catch {
+            throw new APIError(httpStatus.BAD_REQUEST, "Invalid deletion request state.");
+        }
+
+        if (storedData.otp !== cleanOtp) {
+            throw new APIError(httpStatus.BAD_REQUEST, "Incorrect verification OTP. Account deletion cancelled.");
+        }
+
+        const targetUserId = storedData.userId || userId;
+        if (!targetUserId) {
+            throw new APIError(httpStatus.BAD_REQUEST, "User target lost during deletion confirmation.");
+        }
+
+        // Clean Redis OTP keys
+        await redis.deleteValue(`delete-account:otp:${targetUserId}`);
+        if (storedData.credential) {
+            await redis.deleteValue(`delete-account:otp:cred:${storedData.credential.trim().toLowerCase()}`);
+        }
+        await redis.deleteValue(`delete-account:otp:code:${cleanOtp}`);
+
+        // Execute permanent account deletion
+        return await this.deleteUserAccount(targetUserId);
+    }
+
+    /**
+     * Complete Account Deletion Pipeline:
+     * 1. Purge cloud media assets (ImageKit/S3) for avatar, identity documents & marksheets.
+     * 2. Anonymize Payment and Transaction records for GST/Tax compliance (userId -> null).
+     * 3. Anonymize Community Messages (userId -> null).
+     * 4. Close & anonymize Support Tickets (userId -> null, status -> CLOSED).
+     * 5. Purge Redis session tokens.
+     * 6. Hard delete User record & cascading profile data.
+     */
+    public async deleteUserAccount(userId: string) {
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            include: {
+                personalDetails: true,
+                educationDetails: true,
+            },
+        });
+
+        if (!user) {
+            throw new APIError(httpStatus.NOT_FOUND, "User account not found or already deleted");
+        }
+
+        // 1. Collect all media asset IDs for cloud purge
+        const mediaAssetIds: string[] = [];
+        if (user.avatarMediaId) mediaAssetIds.push(user.avatarMediaId);
+        if (user.personalDetails?.aadhaarFileId) mediaAssetIds.push(user.personalDetails.aadhaarFileId);
+        if (user.personalDetails?.panFileId) mediaAssetIds.push(user.personalDetails.panFileId);
+        if (user.personalDetails?.signatureImageId) mediaAssetIds.push(user.personalDetails.signatureImageId);
+        if (user.educationDetails?.collegeResultFileId) mediaAssetIds.push(user.educationDetails.collegeResultFileId);
+        if (user.educationDetails?.classXIIResultFileId) mediaAssetIds.push(user.educationDetails.classXIIResultFileId);
+        if (user.educationDetails?.classXResultFileId) mediaAssetIds.push(user.educationDetails.classXResultFileId);
+
+        // Delete cloud media assets
+        for (const mediaId of mediaAssetIds) {
+            try {
+                await cleanupOldMediaAsset(mediaId, null);
+                await db.mediaAsset.delete({ where: { id: mediaId } }).catch(() => {});
+            } catch (err) {
+                const { logger } = await import("@/config/logger");
+                logger.error(`[UserDeletion] Failed to delete media asset ${mediaId}:`, err);
+            }
+        }
+
+        // 2. Anonymize Payments & Transactions for GST/Tax accounting retention
+        await db.payment.updateMany({
+            where: { userId },
+            data: { userId: null },
+        });
+
+        await db.transaction.updateMany({
+            where: { userId },
+            data: { userId: null },
+        });
+
+        // 3. Anonymize Community Messages (preserve thread integrity)
+        await db.communityMessage.updateMany({
+            where: { userId },
+            data: { userId: null },
+        });
+
+        // 4. Close & anonymize Support Tickets
+        await db.supportTicket.updateMany({
+            where: { userId },
+            data: { userId: null, status: "CLOSED" },
+        });
+
+        // 5. Purge Redis sessions / caches for this user
+        const { redis } = await import("@/config/redis");
+        await redis.deleteValue(`user:${userId}`);
+
+        // 6. Hard delete user record from database
+        await db.user.delete({
+            where: { id: userId },
+        });
+
+        return {
+            success: true,
+            message: "Account and associated user data have been permanently deleted.",
+        };
+    }
 }
 
 export const userService = new UserService();

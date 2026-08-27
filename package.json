@@ -5,7 +5,9 @@
     "scripts": {
         "dev": "cross-env NODE_ENV=development npx nodemon -r module-alias/register src/index.ts",
         "build": "prisma generate && tsc && tsc-alias",
-        "vercel-build": "prisma generate && tsc && tsc-alias",
+        "vercel-build": "(prisma db push || true) && prisma generate && tsc && tsc-alias",
+        "db:push": "prisma db push",
+        "db:sync": "prisma db push && prisma generate",
         "postinstall": "prisma generate",
         "start": "cross-env NODE_ENV=production node -r module-alias/register dist/index.js",
         "seed": "npx tsx prisma/seed.ts",

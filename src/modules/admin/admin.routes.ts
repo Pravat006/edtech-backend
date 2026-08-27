@@ -20,6 +20,7 @@ const router = Router();
 
 router.use("/auth", authRoutes);
 router.use("/sub-admins", managementRoutes);
+router.use("/management/sub-admins", managementRoutes);
 router.use("/courses", adminCourseRoutes);
 router.use("/enrollments", adminEnrollmentRoutes);
 router.use("/upload", adminUploadRoutes);

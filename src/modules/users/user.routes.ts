@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as userController from "./user.controller";
-import { authenticateUser } from "@/middlewares/auth.middleware";
+import { authenticateUser, optionalAuthenticateUser } from "@/middlewares/auth.middleware";
 import { validateRequest } from "@/middlewares/validateRequest";
 import {
     UpdateProfileSchema,
@@ -9,16 +9,24 @@ import {
     VerifyPhoneChangeSchema,
     RequestEmailChangeSchema,
     VerifyEmailChangeSchema,
+    InitiateAccountDeletionSchema,
+    ConfirmAccountDeletionSchema,
 } from "./user.schema";
 
 const router = Router();
 
-// Protect all routes in this module
+// 2-Step Verified Self Account Deletion (Supports unauthenticated public web requests + authenticated user sessions)
+router.post("/delete-account/request", optionalAuthenticateUser, validateRequest(InitiateAccountDeletionSchema), userController.initiateAccountDeletion);
+router.post("/delete-account/confirm", optionalAuthenticateUser, validateRequest(ConfirmAccountDeletionSchema), userController.confirmAccountDeletion);
+
+// Protect remaining authenticated user routes
 router.use(authenticateUser);
 
 router.get("/profile", userController.getProfile);
 router.put("/profile", validateRequest(UpdateProfileSchema), userController.updateProfile);
 router.patch("/profile", validateRequest(UpdateProfileSchema), userController.updateProfile);
+router.delete("/profile", userController.deleteMyAccount);
+router.delete("/me", userController.deleteMyAccount);
 
 router.get("/preferences", userController.getPreferences);
 router.put("/preferences", validateRequest(UpdatePreferencesSchema), userController.updatePreferences);

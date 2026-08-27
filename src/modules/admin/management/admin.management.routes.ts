@@ -12,6 +12,8 @@ router.use(requireSuperAdmin);
 router.post("/", validateRequest(CreateSubAdminSchema), managementController.createSubAdmin);
 router.get("/", managementController.listSubAdmins);
 router.patch("/:id/permissions", validateRequest(UpdateSubAdminPermissionsSchema), managementController.updateSubAdminPermissions);
-router.delete("/:id", managementController.revokeSubAdmin);
+router.patch("/:id/deactivate", managementController.deactivateSubAdmin);
+router.patch("/:id/activate", managementController.activateSubAdmin);
+router.patch("/:id/reassign", managementController.reassignSubAdmin);
 
 export default router;

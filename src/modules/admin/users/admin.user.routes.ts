@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as userController from "./admin.user.controller";
-import { verifyAdmin, requirePermission } from "@/middlewares/verifyAdmin";
+import { verifyAdmin, requirePermission, requireSuperAdmin } from "@/middlewares/verifyAdmin";
 
 const router = Router();
 
@@ -22,6 +22,18 @@ router.post(
     "/:userId/enroll",
     requirePermission("USERS_WRITE"),
     userController.manualEnrollUser
+);
+
+router.post(
+    "/demo-user",
+    requirePermission("USERS_WRITE"),
+    userController.createDemoUser
+);
+
+router.delete(
+    "/:userId",
+    requireSuperAdmin,
+    userController.deleteUser
 );
 
 export default router;

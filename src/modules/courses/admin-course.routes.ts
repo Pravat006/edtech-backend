@@ -35,6 +35,7 @@ router.patch(
 router.patch("/lessons/:lessonId/blocks/reorder", adminCourseController.reorderLessonBlocks);
 router.patch("/lessons/:lessonId/contents/reorder", adminCourseController.reorderLessonBlocks);
 router.patch("/:courseId/lessons/:lessonId/blocks/reorder", adminCourseController.reorderLessonBlocks);
+router.post("/modules/lessons/blocks/reorder", adminCourseController.reorderLessonBlocks);
 
 router.post(
     "/:courseId/modules/:moduleId/lessons/:lessonId/contents",

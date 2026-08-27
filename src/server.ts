@@ -3,6 +3,7 @@ import app from "./app";
 import { logger } from "./config/logger";
 import { referralService } from "./modules/referral/referral.service";
 import { chatGateway } from "./websocket/chat.gateway";
+import { seedDefaultCmsPages } from "./modules/content/cms.seeder";
 
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
@@ -23,5 +24,10 @@ server.listen(Number(PORT), "0.0.0.0", () => {
         .catch((err) => {
             logger.error("[REFERRAL_BACKFILL] Failed to backfill referral codes:", err);
         });
+
+    // Idempotently seed missing CMS static pages on deployment / boot
+    seedDefaultCmsPages().catch((err) => {
+        logger.error("[CMS_SEEDER] Failed to seed default static pages:", err);
+    });
 });
 

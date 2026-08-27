@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import httpStatus from "http-status";
 import * as userService from "./admin.user.service";
+import { CreateDemoUserSchema } from "./admin.user.schema";
 
 export const listUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -59,6 +60,43 @@ export const manualEnrollUser = async (req: Request, res: Response, next: NextFu
             success: true,
             message: "Student successfully enrolled into course.",
             data: enrollment,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const createDemoUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const parsed = CreateDemoUserSchema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(httpStatus.BAD_REQUEST).json({
+                success: false,
+                message: parsed.error.issues[0].message,
+            });
+            return;
+        }
+
+        const result = await userService.createDemoUser(parsed.data);
+
+        res.status(httpStatus.CREATED).json({
+            success: true,
+            message: result.credentialsNotice,
+            data: result.user,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { userId } = req.params;
+        const result = await userService.deleteUser(userId);
+
+        res.status(httpStatus.OK).json({
+            success: true,
+            message: result.message,
         });
     } catch (error) {
         next(error);

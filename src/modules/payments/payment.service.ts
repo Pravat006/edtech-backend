@@ -302,7 +302,7 @@ class PaymentService {
                 include: { user: true },
             });
 
-            if (!payment) return;
+            if (!payment || !payment.userId) return;
 
             // Idempotency check
             if (payment.status === "SUCCESS") return;

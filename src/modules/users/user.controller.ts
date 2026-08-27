@@ -69,4 +69,29 @@ export const verifyEmailChange = async (req: Request, res: Response) => {
     res.status(httpStatus.OK).json(result);
 };
 
+export const initiateAccountDeletion = async (req: Request, res: Response) => {
+    const { credential, password } = req.body;
+    const userId = req.user?.id || null;
+    const result = await userService.initiateUserAccountDeletion(userId, { credential, password });
+    res.status(httpStatus.OK).json(result);
+};
+
+export const confirmAccountDeletion = async (req: Request, res: Response) => {
+    const { otp, credential } = req.body;
+    const userId = req.user?.id || null;
+    const result = await userService.confirmUserAccountDeletion(userId, otp, credential);
+    res.status(httpStatus.OK).json(result);
+};
+
+export const deleteMyAccount = async (req: Request, res: Response) => {
+    // If request body contains OTP, execute verified deletion
+    if (req.body?.otp) {
+        const result = await userService.confirmUserAccountDeletion(req.user!.id, req.body.otp);
+        res.status(httpStatus.OK).json(result);
+        return;
+    }
+    const result = await userService.deleteUserAccount(req.user!.id);
+    res.status(httpStatus.OK).json(result);
+};
+
 

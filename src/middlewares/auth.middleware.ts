@@ -99,3 +99,31 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
             );
         }
     };
+
+export const optionalAuthenticateUser = async (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return next();
+    }
+
+    const token = authHeader.split(" ")[1];
+    try {
+        const decoded = jwt.verify(token, envVars.JWT_SECRET) as jwt.JwtPayload;
+        if (decoded?.id && decoded?.jti) {
+            const cacheKey = `user:${decoded.id}`;
+            const cachedUser = await redis.getValue(cacheKey);
+            if (cachedUser) {
+                req.user = JSON.parse(cachedUser) as User;
+            } else {
+                const user = (await db.user.findUnique({ where: { id: decoded.id } })) as User | null;
+                if (user) {
+                    req.user = user;
+                    await redis.setValue(cacheKey, JSON.stringify(user), 3600);
+                }
+            }
+        }
+    } catch {
+        // Silently catch token errors in optional auth
+    }
+    next();
+};

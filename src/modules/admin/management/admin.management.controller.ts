@@ -15,8 +15,14 @@ export const createSubAdmin = async (req: Request, res: Response) => {
 };
 
 export const listSubAdmins = async (req: Request, res: Response) => {
-    const admins = await adminManagementService.listSubAdmins();
-    res.status(httpStatus.OK).json({ success: true, data: admins });
+    const { status, search, page, limit } = req.query;
+    const result = await adminManagementService.listSubAdmins({
+        status: status as any,
+        search: search as string,
+        page: page ? parseInt(page as string, 10) : 1,
+        limit: limit ? parseInt(limit as string, 10) : 10,
+    });
+    res.status(httpStatus.OK).json({ success: true, ...result });
 };
 
 export const updateSubAdminPermissions = async (req: Request, res: Response) => {
@@ -31,12 +37,26 @@ export const updateSubAdminPermissions = async (req: Request, res: Response) => 
     });
 };
 
-export const revokeSubAdmin = async (req: Request, res: Response) => {
+export const deactivateSubAdmin = async (req: Request, res: Response) => {
     const { id } = req.params;
-    await adminManagementService.revokeSubAdmin(id);
+    const superAdminId = req.admin!.id;
+    const result = await adminManagementService.deactivateSubAdmin(superAdminId, id);
 
-    res.status(httpStatus.OK).json({
-        success: true,
-        message: "Sub-admin access revoked",
-    });
+    res.status(httpStatus.OK).json(result);
+};
+
+export const activateSubAdmin = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const superAdminId = req.admin!.id;
+    const result = await adminManagementService.activateSubAdmin(superAdminId, id);
+
+    res.status(httpStatus.OK).json(result);
+};
+
+export const reassignSubAdmin = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const superAdminId = req.admin!.id;
+    const result = await adminManagementService.reassignSubAdmin(superAdminId, id, req.body);
+
+    res.status(httpStatus.OK).json(result);
 };
