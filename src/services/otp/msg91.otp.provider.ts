@@ -44,6 +44,7 @@ export class Msg91OtpProvider implements IOtpProvider {
                 },
                 body: JSON.stringify({
                     otp_expiry: 5,
+                    otp_length: 6,
                 }),
             });
 

@@ -6,12 +6,11 @@ export class OtpProviderFactory {
     public static getProvider(): IOtpProvider {
         const providerName = (process.env.OTP_PROVIDER || "mock").toLowerCase();
 
-        switch (providerName) {
-            case "msg91":
-                return new Msg91OtpProvider();
-            case "mock":
-            default:
-                return new MockOtpProvider();
+        if (providerName === "msg91" && process.env.MSG91_AUTH_KEY) {
+            return new Msg91OtpProvider();
         }
+
+        // Default to Mock OTP Provider for Phone OTP when MSG91 is unconfigured or in mock mode
+        return new MockOtpProvider();
     }
 }

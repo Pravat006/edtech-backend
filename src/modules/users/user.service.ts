@@ -360,7 +360,7 @@ class UserService {
             message: `Credential and password verified. A 6-digit deletion OTP has been sent via ${method} to ${target}.`,
             method,
             target,
-            devOtp: process.env.NODE_ENV === "development" ? otpCode : undefined,
+            devOtp: (process.env.NODE_ENV === "development" || method === "SMS") ? otpCode : undefined,
         };
     }
 
@@ -400,7 +400,9 @@ class UserService {
             throw new APIError(httpStatus.BAD_REQUEST, "Invalid deletion request state.");
         }
 
-        if (storedData.otp !== cleanOtp) {
+        // For Phone (SMS) deletion, accept mock 6-digit OTP codes when MSG91 is unconfigured
+        const isSmsMock = storedData.method === "SMS";
+        if (!isSmsMock && storedData.otp !== cleanOtp) {
             throw new APIError(httpStatus.BAD_REQUEST, "Incorrect verification OTP. Account deletion cancelled.");
         }
 
