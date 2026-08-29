@@ -1,9 +1,9 @@
 import { db } from "@/config/database";
 import { redis } from "@/config/redis";
-import imagekit from "@/config/imagekit.config";
 import { APIError } from "@/utils/APIError";
 import httpStatus from "http-status";
 import { CreateBannerInput, UpdateBannerInput, ReorderBannersInput } from "./banner.schema";
+import { BunnyStorageMediaProvider } from "../upload/providers/bunny-storage.provider";
 
 const BANNER_CACHE_KEY = "cms:public:banners";
 const BANNER_CACHE_TTL = 3600; // 1 hour
@@ -166,25 +166,22 @@ export class BannerService {
     }
 
     /**
-     * Direct image file upload to ImageKit for Banner Editor
+     * Direct image file upload to Bunny Storage CDN for Banner Editor
      */
     async uploadBannerImage(file: string, fileName?: string) {
         try {
-            const uploadResponse = await imagekit.files.upload({
-                file, // base64 string or image URL
-                fileName: fileName || `banner_${Date.now()}.jpg`,
-                folder: "/banners",
-            });
+            const bunnyStorage = new BunnyStorageMediaProvider();
+            const result = await bunnyStorage.uploadDirect(file, fileName || `banner_${Date.now()}.jpg`);
 
             return {
-                url: uploadResponse.url,
-                fileId: uploadResponse.fileId,
-                name: uploadResponse.name,
+                url: result.url,
+                fileId: result.fileId,
+                name: result.fileId,
             };
         } catch (error: any) {
             throw new APIError(
                 httpStatus.INTERNAL_SERVER_ERROR,
-                `Failed to upload banner image: ${error.message || "ImageKit error"}`
+                `Failed to upload banner image: ${error.message || "Bunny Storage error"}`
             );
         }
     }

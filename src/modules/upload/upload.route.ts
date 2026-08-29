@@ -1,18 +1,29 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import {
-    abortUploadController, completeMultiPartUpload, initiateUploadController, getMultipartUrlsController, getImageKitAuthParamsController, completeImageKitUploadController
+    abortUploadController, completeMultiPartUpload, initiateUploadController, getMultipartUrlsController,
+    getImageKitAuthParamsController, completeImageKitUploadController,
+    createVideoSlotController, getUploadSignatureController, getSignedPlayerUrlController,
+    completeBunnyStorageUploadController
 } from "./upload.controller";
-import { authenticateUser } from "@/middlewares/auth.middleware";
+import { authenticateUserOrAdmin } from "@/middlewares/auth.middleware";
+
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => authenticateUserOrAdmin(req, res, next);
 
 const router = Router();
 
-router.post('/initiate', authenticateUser, initiateUploadController);
-router.post('/complete', authenticateUser, completeMultiPartUpload);
-router.post('/abort', authenticateUser, abortUploadController);
-router.post('/get-multipart-urls', authenticateUser, getMultipartUrlsController);
+router.post('/initiate', authMiddleware, initiateUploadController);
+router.post('/complete', authMiddleware, completeMultiPartUpload);
+router.post('/abort', authMiddleware, abortUploadController);
+router.post('/get-multipart-urls', authMiddleware, getMultipartUrlsController);
 
 // ImageKit Routes
-router.get('/imagekit/auth', authenticateUser, getImageKitAuthParamsController);
-router.post('/imagekit/complete', authenticateUser, completeImageKitUploadController);
+router.get('/imagekit/auth', authMiddleware, getImageKitAuthParamsController);
+router.post('/imagekit/complete', authMiddleware, completeImageKitUploadController);
+
+// Bunny Stream & Storage Routes
+router.post('/video-slot', authMiddleware, createVideoSlotController);
+router.post('/upload-signature', authMiddleware, getUploadSignatureController);
+router.post('/storage/complete', authMiddleware, completeBunnyStorageUploadController);
+router.get('/signed-player-url/:videoId', authMiddleware, getSignedPlayerUrlController);
 
 export const uploadRouter = router;

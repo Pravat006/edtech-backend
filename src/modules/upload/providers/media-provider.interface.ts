@@ -1,5 +1,5 @@
 export interface UploadAuthParams {
-    provider: "IMAGEKIT" | "CLOUDINARY" | "S3";
+    provider: "IMAGEKIT" | "CLOUDINARY" | "S3" | "BUNNY_STORAGE";
     signature: string;
     expire?: number;
     timestamp?: number;
@@ -22,8 +22,33 @@ export interface CompleteUploadInput {
 }
 
 export interface IMediaProvider {
-    readonly name: "IMAGEKIT" | "CLOUDINARY" | "S3";
+    readonly name: "IMAGEKIT" | "CLOUDINARY" | "S3" | "BUNNY_STORAGE";
     getAuthParameters(): UploadAuthParams;
     completeUpload(input: CompleteUploadInput): Promise<any>;
     deleteFile(storageKey: string): Promise<boolean>;
+}
+
+export interface VideoSlotResult {
+    videoGuid: string;
+    libraryId: string;
+    title: string;
+    status: number;
+    bucket?: string;
+    region?: string;
+}
+
+export interface VideoUploadAuth {
+    videoGuid: string;
+    libraryId: string;
+    signature: string;
+    expiration: number;
+    tusEndpoint: string;
+}
+
+export interface IVideoStreamProvider {
+    readonly name: "BUNNY_STREAM";
+    createVideoSlot(title: string): Promise<VideoSlotResult>;
+    getVideoUploadAuth(videoId: string): Promise<VideoUploadAuth>;
+    generateSignedEmbedUrl(videoId: string, userIp?: string, ttlSeconds?: number): string;
+    deleteVideo(videoId: string): Promise<boolean>;
 }

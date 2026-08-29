@@ -31,8 +31,17 @@ export const imageKitCompleteSchema = z.object({
     width: z.number().optional()
 });
 
+export const bunnyStorageCompleteSchema = z.object({
+    fileId: z.string().min(1, "File ID (storage key) is required"),
+    url: z.string().url("Valid CDN URL is required"),
+    size: z.number().nonnegative().optional(),
+    mimeType: z.string().min(1, "Mime type is required"),
+    storageKey: z.string().optional(),
+});
+
 export type InitiateUploadSchema = z.infer<typeof initiateUploadSchema>;
 export type CompleteUploadPartSchema = z.infer<typeof completeUploadPartSchema>;
 export type CompleteUploadSchema = z.infer<typeof completeUploadSchema>;
 export type AbortUploadSchema = z.infer<typeof abortUploadSchema>;
 export type ImageKitCompleteSchema = z.infer<typeof imageKitCompleteSchema>;
+export type BunnyStorageCompleteSchema = z.infer<typeof bunnyStorageCompleteSchema>;

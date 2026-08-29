@@ -31,7 +31,7 @@ app.use(
             if (!origin || allowedOrigins.includes(origin)) {
                 callback(null, true);
             } else {
-                callback(null, true); // Allow dev origins dynamically
+                callback(null, true);
             }
         },
         credentials: true,

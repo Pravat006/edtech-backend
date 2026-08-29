@@ -16,6 +16,84 @@ declare global {
     }
 }
 
+export const authenticateUserOrAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    const adminCookie = req.cookies?.admin_access_token;
+    const authHeader = req.headers.authorization;
+    let bearerToken: string | undefined;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        bearerToken = authHeader.split(" ")[1];
+    }
+
+    // 1. Try Admin HTTP-only Cookie first
+    if (adminCookie) {
+        try {
+            const decoded = jwt.verify(adminCookie, envVars.JWT_SECRET) as jwt.JwtPayload;
+            if (decoded?.id) {
+                const cacheKey = `admin:${decoded.id}`;
+                const cachedAdmin = await redis.getValue(cacheKey);
+                if (cachedAdmin) {
+                    req.admin = JSON.parse(cachedAdmin) as Admin;
+                    return next();
+                }
+                const admin = await db.admin.findUnique({ where: { id: decoded.id } });
+                if (admin) {
+                    req.admin = admin as Admin;
+                    await redis.setValue(cacheKey, JSON.stringify(admin), 3600);
+                    return next();
+                }
+            }
+        } catch {
+            // Ignore cookie error and try Bearer token if present
+        }
+    }
+
+    // 2. Try Authorization Bearer Header (User or Admin)
+    if (bearerToken) {
+        try {
+            const decoded = jwt.verify(bearerToken, envVars.JWT_SECRET) as jwt.JwtPayload;
+            if (decoded?.id) {
+                // Check User Cache/DB
+                const userCacheKey = `user:${decoded.id}`;
+                const cachedUser = await redis.getValue(userCacheKey);
+                if (cachedUser) {
+                    req.user = JSON.parse(cachedUser) as User;
+                    return next();
+                }
+                const user = await db.user.findUnique({ where: { id: decoded.id } });
+                if (user) {
+                    req.user = user as User;
+                    await redis.setValue(userCacheKey, JSON.stringify(user), 3600);
+                    return next();
+                }
+
+                // Fallback check for Admin Bearer token
+                const adminCacheKey = `admin:${decoded.id}`;
+                const cachedAdmin = await redis.getValue(adminCacheKey);
+                if (cachedAdmin) {
+                    req.admin = JSON.parse(cachedAdmin) as Admin;
+                    return next();
+                }
+                const admin = await db.admin.findUnique({ where: { id: decoded.id } });
+                if (admin) {
+                    req.admin = admin as Admin;
+                    await redis.setValue(adminCacheKey, JSON.stringify(admin), 3600);
+                    return next();
+                }
+            }
+        } catch (error) {
+            if (error instanceof jwt.TokenExpiredError) {
+                throw new APIError(401, "Token has expired. Please log in again.");
+            }
+            if (error instanceof jwt.JsonWebTokenError) {
+                throw new APIError(401, "Invalid token. Please log in again.");
+            }
+        }
+    }
+
+    throw new APIError(401, "Authentication required. Please provide valid credentials.");
+};
+
 export const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
         const authHeader = req.headers.authorization;
 

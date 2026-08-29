@@ -35,6 +35,7 @@ router.use("/profile", profileRoutes);
 router.use("/support", supportRoutes);
 router.use("/wishlist", wishlistRoutes);
 router.use("/upload", uploadRouter);
+router.use("/media", uploadRouter);
 router.use("/referrals", referralRoutes);
 router.use("/community", communityRoutes);
 router.use("/ai-chat", aiChatRoutes);
