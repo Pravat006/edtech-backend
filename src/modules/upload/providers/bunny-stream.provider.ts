@@ -139,4 +139,33 @@ export class BunnyStreamMediaProvider implements IVideoStreamProvider {
             return false;
         }
     }
+    /**
+     * Official Bunny Stream API: Get Video Status
+     * GET https://video.bunnycdn.com/library/{libraryId}/videos/{videoId}
+     */
+    public async getVideoStatus(videoId: string): Promise<number | null> {
+        this.ensureConfig();
+
+        const url = `https://video.bunnycdn.com/library/${this.libraryId}/videos/${videoId}`;
+        try {
+            const res = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json",
+                    "AccessKey": this.apiKey,
+                },
+                signal: AbortSignal.timeout(5000),
+            });
+
+            if (!res.ok) {
+                return null;
+            }
+
+            const data = (await res.json()) as any;
+            return data.status ?? null;
+        } catch (error) {
+            logger.error("[BunnyStream] Error in getVideoStatus:", error);
+            return null;
+        }
+    }
 }

@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const createVideoSlotSchema = z.object({
+    title: z.string().optional(),
+    replaceMediaAssetId: z.string().uuid("Invalid MediaAsset ID format").optional()
+});
+
+export const deleteAssetSchema = z.object({
+    id: z.string().min(1, "Asset ID or Storage Key is required")
+});
+
 export const initiateUploadSchema = z.object({
     filename: z.string().min(1, "Filename is required"),
     size: z.number().nonnegative("Size must be a positive number"), // or z.string() if expecting huge files as string
@@ -37,6 +46,7 @@ export const bunnyStorageCompleteSchema = z.object({
     size: z.number().nonnegative().optional(),
     mimeType: z.string().min(1, "Mime type is required"),
     storageKey: z.string().optional(),
+    replaceMediaAssetId: z.string().uuid("Invalid MediaAsset ID format").optional()
 });
 
 export type InitiateUploadSchema = z.infer<typeof initiateUploadSchema>;

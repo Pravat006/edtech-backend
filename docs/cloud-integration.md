@@ -323,3 +323,62 @@ graph TD
 ### Manual & Resilience Verification
 - Test out-of-order webhook status updates (simulating status 2 arriving after status 3).
 - Test timeout behavior using mocked slow HTTP network conditions.
+# Media Upload Edge Cases Implementation Plan
+
+To answer your question: **No, we have not implemented these specific edge cases in the codebase yet.** 
+
+However, **yes, they absolutely make perfect sense from a backend and architectural perspective.** 
+
+If a user aborts an upload halfway or closes the tab, Bunny CDN will keep the "empty" video slot in your library forever, and they **will bill you for the storage** of that empty slot and any partial chunks that were uploaded. Implementing an instant purge and a reliable client-side state manager is the industry standard way to handle direct-to-cloud TUS uploads.
+
+Here is a plan to implement exactly what you described:
+
+## Proposed Changes
+
+### Backend (Orphaned Asset Removal)
+
+#### [MODIFY] `src/modules/upload/upload.controller.ts`
+- Create a `deleteVideoSlotController` that accepts a `videoGuid`.
+- Use the existing `streamProvider.deleteVideo(videoGuid)` function to purge the video from Bunny CDN.
+- Use Prisma to delete the associated `MediaAsset` record from your database to keep it clean.
+
+#### [MODIFY] `src/modules/upload/upload.route.ts`
+- Expose the controller at `DELETE /video-slot/:videoGuid`.
+
+---
+
+### Frontend (Upload State Management & Protection)
+
+#### [NEW] `lib/stores/use-upload-manager-store.ts`
+- Build a Zustand store with `persist` middleware (saving to `xyz_upload_manager_store` in localStorage).
+- It will track the status of current uploads, storing the `videoGuid` so that if the page refreshes, we don't lose track of it.
+- Implement an Omit/Filter step so we don't try to persist non-serializable DOM handles like the `File` object or `tusUpload` instances to localStorage.
+
+#### [NEW] `hooks/use-before-unload-warning.ts`
+- A React hook that listens to the Zustand store.
+- If an upload is active, it will bind to the browser's `beforeunload` event, triggering the native "Are you sure you want to leave this page? Your uploads will be cancelled" popup.
+
+#### [MODIFY] `features/courses/components/media-uploader.tsx`
+- Refactor to use the new Zustand store instead of local React state.
+- Wire up the `onCancel` or "X" button to trigger the `tus.abort()` and simultaneously fire the `DELETE /v1/admin/media/video-slot/:videoGuid` request to the backend.
+
+---
+
+### Backend (Media Replacement Logic)
+
+#### [MODIFY] `src/modules/upload/upload.controller.ts`
+- Update `createVideoSlotController` and `getUploadSignatureController` to accept an optional `replaceMediaAssetId` in the request body.
+- If `replaceMediaAssetId` is provided:
+  1. Fetch the existing `MediaAsset` from the database.
+  2. Use the provider (Bunny Stream or Bunny Storage) to delete the old file from the cloud, freeing up storage immediately.
+  3. Instead of creating a new `MediaAsset` row, **update** the existing row with the new `storageKey` and `url`.
+- Add a new `deleteBunnyStorageFile(storageKey: string)` method in `BunnyStorageMediaProvider` (Bunny Stream already has `deleteVideo`).
+
+#### [MODIFY] `src/modules/upload/upload.schema.ts`
+- Add `replaceMediaAssetId` as an optional string/UUID to the validation schemas.
+
+## User Review Required
+> [!IMPORTANT]  
+> This is a highly robust upgrade to your media pipeline that will prevent storage leakage and data inconsistencies. It also implements your suggestion to **update** existing database records instead of creating orphaned rows during replacement.
+>
+> **Do you approve of this entire plan?** If so, I will build out the Backend routes, the replacement logic, and the Frontend Zustand store immediately.

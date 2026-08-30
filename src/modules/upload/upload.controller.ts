@@ -114,24 +114,44 @@ export const completeBunnyStorageUploadController = async (req: Request, res: Re
         else if (mimeType === "application/pdf") mediaType = "PDF";
 
         const storageKey = parsed.storageKey || parsed.fileId;
+        const replaceMediaAssetId = parsed.replaceMediaAssetId;
 
-        // Upsert to avoid duplicate storageKey conflicts on retries
-        let mediaAsset = await db.mediaAsset.findUnique({ where: { storageKey } });
-        if (!mediaAsset) {
-            mediaAsset = await db.mediaAsset.create({
-                data: {
-                    type: mediaType,
-                    url: parsed.url,
-                    mimeType,
-                    storageKey,
-                    provider: "BUNNY_STORAGE",
-                    bucket: process.env.BUNNY_STORAGE_ZONE_NAME || "",
-                    region: "global",
-                    sizeBytes: parsed.size,
-                    uploadStrategy: "SINGLE_PART",
-                    uploadStatus: "COMPLETED",
-                },
+        let mediaAsset;
+        if (replaceMediaAssetId) {
+            mediaAsset = await db.mediaAsset.findUnique({ where: { id: replaceMediaAssetId } });
+            if (mediaAsset) {
+                // Delete old static file from Bunny Storage
+                const storageProvider = MediaProviderFactory.getMediaProvider();
+                if (mediaAsset.provider === storageProvider.name && mediaAsset.storageKey) {
+                    await storageProvider.deleteFile(mediaAsset.storageKey);
+                }
+            }
+        }
+
+        const data = {
+            type: mediaType,
+            url: parsed.url,
+            mimeType,
+            storageKey,
+            provider: "BUNNY_STORAGE",
+            bucket: process.env.BUNNY_STORAGE_ZONE_NAME || "",
+            region: "global",
+            sizeBytes: parsed.size,
+            uploadStrategy: "SINGLE_PART" as const,
+            uploadStatus: "COMPLETED" as const,
+        };
+
+        if (replaceMediaAssetId && mediaAsset) {
+            mediaAsset = await db.mediaAsset.update({
+                where: { id: replaceMediaAssetId },
+                data
             });
+        } else {
+            // Upsert to avoid duplicate storageKey conflicts on retries
+            mediaAsset = await db.mediaAsset.findUnique({ where: { storageKey } });
+            if (!mediaAsset) {
+                mediaAsset = await db.mediaAsset.create({ data });
+            }
         }
 
         res.status(status.OK).json(
@@ -174,8 +194,19 @@ export const createVideoSlotController = async (req: Request, res: Response, nex
         const userId = (req as any).user?.id || (req as any).admin?.id;
         if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
 
-        const { title = "Untitled Lesson Video" } = req.body;
+        const { title = "Untitled Lesson Video", replaceMediaAssetId } = req.body;
         const streamProvider = MediaProviderFactory.getVideoStreamProvider();
+
+        let mediaAsset;
+        if (replaceMediaAssetId) {
+            mediaAsset = await db.mediaAsset.findUnique({ where: { id: replaceMediaAssetId } });
+            if (mediaAsset) {
+                // Delete old video from Bunny Stream
+                if (mediaAsset.provider === streamProvider.name && mediaAsset.storageKey) {
+                    await streamProvider.deleteVideo(mediaAsset.storageKey);
+                }
+            }
+        }
 
         // 1. Create slot on Bunny Stream
         const slot = await streamProvider.createVideoSlot(title);
@@ -183,20 +214,27 @@ export const createVideoSlotController = async (req: Request, res: Response, nex
         // 2. Generate TUS Auth signature
         const tusAuth = await streamProvider.getVideoUploadAuth(slot.videoGuid);
 
-        // 3. Register MediaAsset in DB
-        const mediaAsset = await db.mediaAsset.create({
-            data: {
-                type: "VIDEO",
-                mimeType: "video/mp4",
-                storageKey: slot.videoGuid,
-                provider: streamProvider.name,
-                uploadStrategy: "SINGLE_PART",
-                uploadStatus: "INITIATED",
-                bucket: slot.bucket || slot.libraryId,
-                region: slot.region || "global",
-                url: `https://iframe.mediadelivery.net/embed/${slot.libraryId}/${slot.videoGuid}`,
-            },
-        });
+        const data = {
+            type: "VIDEO" as const,
+            mimeType: "video/mp4",
+            storageKey: slot.videoGuid,
+            provider: streamProvider.name,
+            uploadStrategy: "SINGLE_PART" as const,
+            uploadStatus: "INITIATED" as const,
+            bucket: slot.bucket || slot.libraryId,
+            region: slot.region || "global",
+            url: `https://iframe.mediadelivery.net/embed/${slot.libraryId}/${slot.videoGuid}`,
+        };
+
+        // 3. Register or Update MediaAsset in DB
+        if (replaceMediaAssetId && mediaAsset) {
+            mediaAsset = await db.mediaAsset.update({
+                where: { id: replaceMediaAssetId },
+                data
+            });
+        } else {
+            mediaAsset = await db.mediaAsset.create({ data });
+        }
 
         res.status(status.OK).json(
             new ApiResponse(status.OK, "Video slot created successfully", {
@@ -242,9 +280,74 @@ export const getSignedPlayerUrlController = async (req: Request, res: Response, 
         const streamProvider = MediaProviderFactory.getVideoStreamProvider();
         const signedUrl = streamProvider.generateSignedEmbedUrl(videoId);
 
+        // Fetch real-time status from Bunny Stream API
+        let videoStatus: string | null = null;
+        try {
+            const rawStatus = await streamProvider.getVideoStatus(videoId);
+            if (rawStatus === 0 || rawStatus === 1 || rawStatus === 2) {
+                videoStatus = "PROCESSING";
+            } else if (rawStatus === 3 || rawStatus === 4) {
+                videoStatus = "READY";
+            } else if (rawStatus === 5) {
+                videoStatus = "FAILED";
+            } else if (rawStatus === 6) {
+                videoStatus = "UPLOADING";
+            }
+        } catch (error) {
+            // Non-blocking failure, just skip status
+        }
+
         res.status(status.OK).json(
-            new ApiResponse(status.OK, "Signed video embed URL generated successfully", { signedUrl })
+            new ApiResponse(status.OK, "Signed video embed URL generated successfully", { signedUrl, status: videoStatus })
         );
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Bunny Stream: Delete orphaned video slot
+ * DELETE /v1/media/video-slot/:videoId
+ */
+export const deleteVideoSlotController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).user?.id || (req as any).admin?.id;
+        if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
+
+        const videoId = req.params.videoId as string;
+        const streamProvider = MediaProviderFactory.getVideoStreamProvider();
+        
+        // Delete from cloud
+        await streamProvider.deleteVideo(videoId);
+        
+        // Purge orphaned DB record if it exists
+        await db.mediaAsset.deleteMany({ where: { storageKey: videoId } });
+
+        res.status(status.OK).json(new ApiResponse(status.OK, "Video slot purged successfully", {}));
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Bunny Storage: Delete orphaned static file
+ * DELETE /v1/media/storage/:storageKey
+ */
+export const deleteStorageFileController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).user?.id || (req as any).admin?.id;
+        if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
+
+        const storageKey = req.params.storageKey as string;
+        const storageProvider = MediaProviderFactory.getMediaProvider();
+        
+        // Delete from cloud
+        await storageProvider.deleteFile(storageKey);
+        
+        // Purge orphaned DB record if it exists
+        await db.mediaAsset.deleteMany({ where: { storageKey } });
+
+        res.status(status.OK).json(new ApiResponse(status.OK, "Storage file purged successfully", {}));
     } catch (error) {
         next(error);
     }

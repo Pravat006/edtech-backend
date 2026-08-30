@@ -51,4 +51,5 @@ export interface IVideoStreamProvider {
     getVideoUploadAuth(videoId: string): Promise<VideoUploadAuth>;
     generateSignedEmbedUrl(videoId: string, userIp?: string, ttlSeconds?: number): string;
     deleteVideo(videoId: string): Promise<boolean>;
+    getVideoStatus(videoId: string): Promise<number | null>;
 }

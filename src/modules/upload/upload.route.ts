@@ -3,7 +3,7 @@ import {
     abortUploadController, completeMultiPartUpload, initiateUploadController, getMultipartUrlsController,
     getImageKitAuthParamsController, completeImageKitUploadController,
     createVideoSlotController, getUploadSignatureController, getSignedPlayerUrlController,
-    completeBunnyStorageUploadController
+    completeBunnyStorageUploadController, deleteVideoSlotController, deleteStorageFileController
 } from "./upload.controller";
 import { authenticateUserOrAdmin } from "@/middlewares/auth.middleware";
 
@@ -22,8 +22,10 @@ router.post('/imagekit/complete', authMiddleware, completeImageKitUploadControll
 
 // Bunny Stream & Storage Routes
 router.post('/video-slot', authMiddleware, createVideoSlotController);
+router.delete('/video-slot/:videoId', authMiddleware, deleteVideoSlotController);
 router.post('/upload-signature', authMiddleware, getUploadSignatureController);
 router.post('/storage/complete', authMiddleware, completeBunnyStorageUploadController);
+router.delete('/storage/:storageKey', authMiddleware, deleteStorageFileController);
 router.get('/signed-player-url/:videoId', authMiddleware, getSignedPlayerUrlController);
 
 export const uploadRouter = router;

@@ -761,11 +761,29 @@ class AdminCourseService {
             }
         }
 
+        let contentOrder: number | undefined = data.order;
+        if (contentOrder !== undefined && contentOrder !== null) {
+            const existingContentWithOrder = await db.lessonContent.findFirst({
+                where: { lessonId, order: contentOrder },
+                select: { id: true },
+            });
+            if (existingContentWithOrder) contentOrder = undefined;
+        }
+
+        if (contentOrder === undefined || contentOrder === null) {
+            const maxContent = await db.lessonContent.findFirst({
+                where: { lessonId },
+                orderBy: { order: "desc" },
+                select: { order: true },
+            });
+            contentOrder = (maxContent?.order || 0) + 1;
+        }
+
         const content = await db.lessonContent.create({
             data: {
                 lessonId,
                 type: data.type as any,
-                order: data.order,
+                order: contentOrder,
                 title: data.title,
                 body: data.body,
                 mediaId: data.mediaId,
