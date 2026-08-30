@@ -15,6 +15,8 @@ import { communityRoutes } from "./community/community.routes";
 import cmsRoutes from "./content/cms.routes";
 import { publicBannerRouter } from "./banner/banner.routes";
 import aiChatRoutes from "./ai-chat/ai-chat.routes";
+import { publicSettingsRouter } from "./settings/settings.routes";
+import { calendarRouter } from "./calendar/calendar.routes";
 
 const router = Router();
 
@@ -27,6 +29,8 @@ router.use("/admin", adminRoutes);
 
 router.use("/content", cmsRoutes);
 router.use("/content", publicBannerRouter);
+router.use("/public/settings", publicSettingsRouter);
+router.use("/public/calendar", calendarRouter);
 router.use("/public", publicRoutes);
 router.use("/courses", courseRoutes);
 router.use("/enrollments", enrollmentRoutes);

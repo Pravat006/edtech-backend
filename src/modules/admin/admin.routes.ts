@@ -11,6 +11,8 @@ import { adminReferralRoutes } from "./referral/admin.referral.routes";
 import adminCmsRoutes from "./cms/admin.cms.routes";
 import { adminBannerRouter } from "../banner/banner.routes";
 import adminAIChatRoutes from "./ai-chat/admin-ai-chat.routes";
+import { adminSettingsRouter } from "../settings/settings.routes";
+import { adminQuizRouter } from "../quizzes/quiz.routes";
 
 import { verifyAdmin, requirePermission } from "@/middlewares/verifyAdmin";
 import { validateRequest } from "@/middlewares/validateRequest";
@@ -33,6 +35,8 @@ router.use("/referrals", adminReferralRoutes);
 router.use("/content", adminCmsRoutes);
 router.use("/content", adminBannerRouter);
 router.use("/ai-chat", adminAIChatRoutes);
+router.use("/settings", adminSettingsRouter);
+router.use("/lessons/:lessonId/quiz", adminQuizRouter);
 
 router.get(
     "/verifications/pending",

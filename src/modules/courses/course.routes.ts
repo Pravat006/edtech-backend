@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticateUser } from "@/middlewares/auth.middleware";
 import * as courseController from "./course.controller";
+import { publicQuizRouter } from "../quizzes/quiz.routes";
 
 const router = Router();
 
@@ -18,6 +19,8 @@ router.patch(
     "/:courseId/lessons/:lessonId/progress",
     courseController.updateLessonProgress
 );
+
+router.use("/:courseId/lessons/:lessonId/quiz", publicQuizRouter);
 
 router.get("/:courseId/reviews", courseController.getCourseReviews);
 router.post("/:courseId/reviews", courseController.submitReview);

@@ -430,12 +430,14 @@ class CourseService {
             select: {
                 id: true,
                 title: true,
+                scheduledPublishDate: true,
                 modules: {
                     orderBy: { order: "asc" },
                     select: {
                         id: true,
                         title: true,
                         order: true,
+                        scheduledPublishDate: true,
                         lessons: {
                             orderBy: { order: "asc" },
                             select: {
@@ -445,6 +447,7 @@ class CourseService {
                                 durationSec: true,
                                 unlockAfterDays: true,
                                 isFreePreview: true,
+                                scheduledPublishDate: true,
                                 quiz: {
                                     select: { id: true, title: true },
                                 },
@@ -479,13 +482,27 @@ class CourseService {
         );
 
         // 4. Process modules and lessons with drip logic & progress
+        const courseDate = course.scheduledPublishDate;
+
         const modules = course.modules.map((module) => {
+            const moduleDate = module.scheduledPublishDate;
+
             const lessons = module.lessons.map((lesson) => {
+                const lessonDate = lesson.scheduledPublishDate;
+
+                const latestSchedule = [lessonDate, moduleDate, courseDate]
+                    .filter((d): d is Date => d !== null && d !== undefined)
+                    .sort((a, b) => b.getTime() - a.getTime())[0];
+                
+                const lockedUntil = (latestSchedule && latestSchedule > now) ? latestSchedule : null;
+
                 const isUnlocked =
-                    lesson.isFreePreview ||
-                    lesson.unlockAfterDays === null ||
-                    lesson.unlockAfterDays === undefined ||
-                    daysEnrolled >= lesson.unlockAfterDays;
+                    !lockedUntil && (
+                        lesson.isFreePreview ||
+                        lesson.unlockAfterDays === null ||
+                        lesson.unlockAfterDays === undefined ||
+                        daysEnrolled >= lesson.unlockAfterDays
+                    );
 
                 const userProgress = progressMap.get(lesson.id) ?? {
                     status: "NOT_STARTED",
@@ -501,6 +518,7 @@ class CourseService {
                     durationSec: lesson.durationSec,
                     unlockAfterDays: lesson.unlockAfterDays,
                     isFreePreview: lesson.isFreePreview,
+                    lockedUntil,
                     isUnlocked,
                     userProgress: {
                         status: userProgress.status,
@@ -545,6 +563,15 @@ class CourseService {
                 id: true,
                 unlockAfterDays: true,
                 isFreePreview: true,
+                scheduledPublishDate: true,
+                module: {
+                    select: {
+                        scheduledPublishDate: true,
+                        course: {
+                            select: { scheduledPublishDate: true }
+                        }
+                    }
+                },
                 contents: {
                     orderBy: { order: "asc" },
                     select: {
@@ -563,6 +590,19 @@ class CourseService {
 
         if (!lesson) {
             throw new APIError(httpStatus.NOT_FOUND, "Lesson not found in this course");
+        }
+
+        // Absolute Security: Block access if lesson, module, or course is scheduled for the future
+        const lessonDate = lesson.scheduledPublishDate;
+        const moduleDate = lesson.module.scheduledPublishDate;
+        const courseDate = lesson.module.course.scheduledPublishDate;
+        
+        const latestSchedule = [lessonDate, moduleDate, courseDate]
+            .filter((d): d is Date => d !== null && d !== undefined)
+            .sort((a, b) => b.getTime() - a.getTime())[0];
+
+        if (latestSchedule && latestSchedule > now) {
+            throw new APIError(httpStatus.FORBIDDEN, `This content is scheduled to be released on ${latestSchedule.toISOString()}`);
         }
 
         // If it is a free preview, return it immediately without checking enrollment
@@ -618,6 +658,7 @@ class CourseService {
                 select: {
                     id: true,
                     isFreePreview: true,
+                    durationSec: true,
                 },
             });
 
@@ -661,8 +702,17 @@ class CourseService {
                 select: { completedAt: true },
             });
 
+            // 90% Completion Trigger
+            let finalStatus = data.status;
+            if (finalStatus !== "COMPLETED" && lesson.durationSec) {
+                const threshold = lesson.durationSec * 0.90;
+                if (data.watchTimeSec >= threshold) {
+                    finalStatus = "COMPLETED";
+                }
+            }
+
             const completedAt =
-                data.status === "COMPLETED"
+                finalStatus === "COMPLETED"
                     ? (existingProgress?.completedAt ?? now)
                     : null;
 
@@ -673,7 +723,7 @@ class CourseService {
                 update: {
                     watchTimeSec: data.watchTimeSec,
                     lastPositionSec: data.lastPositionSec,
-                    status: data.status,
+                    status: finalStatus,
                     completedAt,
                 },
                 create: {
@@ -681,15 +731,15 @@ class CourseService {
                     lessonId,
                     watchTimeSec: data.watchTimeSec,
                     lastPositionSec: data.lastPositionSec,
-                    status: data.status,
+                    status: finalStatus,
                     completedAt,
                 },
             });
 
-            // 4. Auto-issue Certificate check if status is COMPLETED
             let certificateIssued = false;
+            let newlyCreatedCertId: string | null = null;
 
-            if (data.status === "COMPLETED") {
+            if (finalStatus === "COMPLETED") {
                 const totalLessons = await tx.lesson.count({
                     where: { module: { courseId } },
                 });
@@ -709,7 +759,7 @@ class CourseService {
                     });
 
                     if (!existingCert) {
-                        await tx.certificate.create({
+                        const newCert = await tx.certificate.create({
                             data: {
                                 userId,
                                 enrollmentId: enrollment.id,
@@ -722,6 +772,7 @@ class CourseService {
                         });
 
                         certificateIssued = true;
+                        newlyCreatedCertId = newCert.id;
                     }
                 }
             }
@@ -729,6 +780,7 @@ class CourseService {
             return {
                 progress,
                 certificateIssued,
+                newlyCreatedCertId,
             };
         });
     }

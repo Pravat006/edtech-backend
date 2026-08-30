@@ -346,6 +346,7 @@ class AdminCourseService {
                     courseId: true,
                     title: true,
                     order: true,
+                    scheduledPublishDate: true,
                     _count: {
                         select: { lessons: true }
                     },
@@ -357,6 +358,7 @@ class AdminCourseService {
                             order: true,
                             durationSec: true,
                             unlockAfterDays: true,
+                            scheduledPublishDate: true,
                             isFreePreview: true,
                             _count: { select: { contents: true } },
                             contents: {
@@ -390,6 +392,7 @@ class AdminCourseService {
                 courseId: mod.courseId,
                 title: mod.title,
                 order: mod.order,
+                scheduledPublishDate: mod.scheduledPublishDate,
                 lessonsCount: mod._count.lessons,
                 lessons: mod.lessons.map(lesson => ({
                     id: lesson.id,
@@ -397,6 +400,7 @@ class AdminCourseService {
                     order: lesson.order,
                     durationSec: lesson.durationSec,
                     unlockAfterDays: lesson.unlockAfterDays,
+                    scheduledPublishDate: lesson.scheduledPublishDate,
                     isFreePreview: lesson.isFreePreview,
                     blocksCount: lesson._count.contents,
                     contents: lesson.contents,
@@ -445,12 +449,14 @@ class AdminCourseService {
                 courseId,
                 title: data.title,
                 order: moduleOrder,
+                scheduledPublishDate: data.scheduledPublishDate,
             },
             select: {
                 id: true,
                 courseId: true,
                 title: true,
                 order: true,
+                scheduledPublishDate: true,
             },
         });
 
@@ -484,12 +490,16 @@ class AdminCourseService {
             data: {
                 ...(data.title && { title: data.title }),
                 ...(data.order !== undefined && { order: data.order }),
+                ...(data.scheduledPublishDate !== undefined && {
+                    scheduledPublishDate: data.scheduledPublishDate,
+                }),
             },
             select: {
                 id: true,
                 courseId: true,
                 title: true,
                 order: true,
+                scheduledPublishDate: true,
             },
         });
 
@@ -588,6 +598,7 @@ class AdminCourseService {
                 order: lessonOrder,
                 durationSec: data.durationSec,
                 unlockAfterDays: data.unlockAfterDays,
+                scheduledPublishDate: data.scheduledPublishDate,
                 isFreePreview: data.isFreePreview,
             },
             select: {
@@ -597,6 +608,7 @@ class AdminCourseService {
                 order: true,
                 durationSec: true,
                 unlockAfterDays: true,
+                scheduledPublishDate: true,
                 isFreePreview: true,
             },
         });
@@ -640,6 +652,9 @@ class AdminCourseService {
                 ...(data.unlockAfterDays !== undefined && {
                     unlockAfterDays: data.unlockAfterDays,
                 }),
+                ...(data.scheduledPublishDate !== undefined && {
+                    scheduledPublishDate: data.scheduledPublishDate,
+                }),
                 ...(data.isFreePreview !== undefined && {
                     isFreePreview: data.isFreePreview,
                 }),
@@ -651,6 +666,7 @@ class AdminCourseService {
                 order: true,
                 durationSec: true,
                 unlockAfterDays: true,
+                scheduledPublishDate: true,
                 isFreePreview: true,
             },
         });

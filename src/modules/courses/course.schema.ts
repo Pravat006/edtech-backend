@@ -26,6 +26,7 @@ export type UpdateCourse = z.infer<typeof UpdateCourseSchema>;
 export const CreateModuleSchema = z.object({
     title: z.string().min(2, "Module title is required"),
     order: z.number().int().positive("Order must be a positive integer"),
+    scheduledPublishDate: z.coerce.date().nullable().optional(),
 });
 export type CreateModule = z.infer<typeof CreateModuleSchema>;
 
@@ -37,6 +38,7 @@ export const CreateLessonSchema = z.object({
     order: z.number().int().positive("Order must be a positive integer"),
     durationSec: z.number().int().nonnegative().optional(),
     unlockAfterDays: z.number().int().nonnegative().optional(),
+    scheduledPublishDate: z.coerce.date().nullable().optional(),
     isFreePreview: z.boolean().default(false),
 });
 export type CreateLesson = z.infer<typeof CreateLessonSchema>;

@@ -18,29 +18,30 @@ model Admin {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  coursesManaged       Course[]        @relation("InstructorCourses")
-  reviewedReports      MessageReport[] @relation("ReviewedByAdmin")
-  reviewedTestimonials Testimonial[]   @relation("ReviewedByAdmin")
-  assignedSupportTickets SupportTicket[] @relation("AssignedSupportTickets")
-  supportMessages        SupportMessage[] @relation("AdminSupportMessages")
-  cmsPagesUpdated        CmsPage[]        @relation("CmsPageUpdatedBy")
-  cmsRevisionsCreated    CmsPageRevision[] @relation("CmsRevisionCreatedBy")
-  bannersCreated         Banner[]         @relation("BannerCreatedBy")
+  coursesManaged          Course[]          @relation("InstructorCourses")
+  reviewedReports         MessageReport[]   @relation("ReviewedByAdmin")
+  reviewedTestimonials    Testimonial[]     @relation("ReviewedByAdmin")
+  assignedSupportTickets  SupportTicket[]   @relation("AssignedSupportTickets")
+  supportMessages         SupportMessage[]  @relation("AdminSupportMessages")
+  cmsPagesUpdated         CmsPage[]         @relation("CmsPageUpdatedBy")
+  cmsRevisionsCreated     CmsPageRevision[] @relation("CmsRevisionCreatedBy")
+  bannersCreated          Banner[]          @relation("BannerCreatedBy")
+  platformSettingsUpdated PlatformSetting[]
 
   @@index([email])
   @@index([role])
 }
 
 model User {
-  id            String      @id @default(uuid())
-  phoneNumber   String      @unique
-  name          String?
-  password      String?
-  email         String?     @unique
-  isEmailVerified Boolean   @default(false)
-  expoPushToken String?
-  avatarMediaId String?
-  avatar        MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id])
+  id              String      @id @default(uuid())
+  phoneNumber     String      @unique
+  name            String?
+  password        String?
+  email           String?     @unique
+  isEmailVerified Boolean     @default(false)
+  expoPushToken   String?
+  avatarMediaId   String?
+  avatar          MediaAsset? @relation("UserAvatar", fields: [avatarMediaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,7 +62,7 @@ model User {
   certificates      Certificate[]
   testimonials      Testimonial[]
   supportTickets    SupportTicket[]
-  supportMessages   SupportMessage[]  @relation("UserSupportMessages")
+  supportMessages   SupportMessage[]   @relation("UserSupportMessages")
 
   wallet        Wallet?
   referralCode  ReferralCode?
@@ -82,20 +83,20 @@ model UserPreferences {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   language String
-  subjects Subject[]
-  goals    Goal[]
+  subjects String[]
+  goals    String[]
 
   updatedAt DateTime @updatedAt
 }
 
 model Course {
-  id          String  @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String
-  subject     Subject
+  subject     String
   language    String
-  goals       Goal[]
-  price       Decimal @default(0) @db.Decimal(10, 2)
+  goals       String[]
+  price       Decimal  @default(0) @db.Decimal(10, 2)
 
   discountPrice      Decimal?    @db.Decimal(10, 2)
   discountValidUntil DateTime?
@@ -108,6 +109,8 @@ model Course {
 
   // null = lifetime access. Affects only NEW enrollments, never existing ones.
   accessDurationDays Int?
+
+  scheduledPublishDate DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,6 +135,8 @@ model Module {
   title    String
   order    Int
 
+  scheduledPublishDate DateTime?
+
   lessons Lesson[]
 
   @@index([courseId])
@@ -151,10 +156,12 @@ model Lesson {
   // Preview lesson accessible without enrollment
   isFreePreview   Boolean @default(false)
 
-  contents       LessonContent[]
-  quiz           Quiz?
-  progress       LessonProgress[]
-  aiChatMessages AiChatMessage[]
+  scheduledPublishDate DateTime?
+
+  contents          LessonContent[]
+  quiz              Quiz?
+  progress          LessonProgress[]
+  aiChatMessages    AiChatMessage[]
   chatConversations ChatConversation[]
 
   @@unique([moduleId, order])
@@ -372,7 +379,7 @@ model ChatMessage {
   provider      String?
   model         String?
   promptVersion String?
-  creditCost    Int              @default(0)
+  creditCost    Int     @default(0)
 
   createdAt DateTime @default(now())
 
@@ -386,11 +393,11 @@ enum ChatRole {
 }
 
 model CommunityMessage {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   userId   String?
-  user     User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   message   String
   createdAt DateTime @default(now())
@@ -471,13 +478,13 @@ model MediaAsset {
   certificates         Certificate[]   @relation("CertificateMedia")
 
   // KYC & Education document back-relations
-  aadhaarFileFor    UserPersonalDetails[]  @relation("AadhaarFile")
-  panFileFor        UserPersonalDetails[]  @relation("PanFile")
-  signatureFor      UserPersonalDetails[]  @relation("SignatureImage")
-  collegeResultFor  UserEducationDetails[] @relation("CollegeResultFile")
-  classXIIResultFor UserEducationDetails[] @relation("ClassXIIResultFile")
-  classXResultFor   UserEducationDetails[] @relation("ClassXResultFile")
-  supportMessageAttachments SupportMessage[] @relation("SupportMessageAttachments")
+  aadhaarFileFor            UserPersonalDetails[]  @relation("AadhaarFile")
+  panFileFor                UserPersonalDetails[]  @relation("PanFile")
+  signatureFor              UserPersonalDetails[]  @relation("SignatureImage")
+  collegeResultFor          UserEducationDetails[] @relation("CollegeResultFile")
+  classXIIResultFor         UserEducationDetails[] @relation("ClassXIIResultFile")
+  classXResultFor           UserEducationDetails[] @relation("ClassXResultFile")
+  supportMessageAttachments SupportMessage[]       @relation("SupportMessageAttachments")
 }
 
 model ReferralCode {
@@ -577,20 +584,21 @@ enum AdminPermission {
   SETTINGS_WRITE
 }
 
-enum Goal {
-  POPULAR_EXAMS
-  GOVERNMENT_EXAMS
-  ACADEMIC
-  SKILL_BASED
+model PlatformSetting {
+  key         String   @id
+  value       String   @db.Text
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   Admin?   @relation(fields: [updatedById], references: [id])
 }
 
-enum Subject {
-  ENGINEERING
-  ARTS
-  SCIENCE
-  MATH
-  COMMERCE
-  OTHER
+model CourseCategoryConfig {
+  id        String   @id @default(uuid())
+  type      String // "SUBJECT" or "GOAL"
+  value     String   @unique
+  label     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 enum EnrollmentStatus {
@@ -833,18 +841,18 @@ enum TicketSenderType {
 }
 
 model SupportTicket {
-  id           String         @id @default(uuid())
-  ticketNumber String         @unique
+  id           String  @id @default(uuid())
+  ticketNumber String  @unique
   userId       String?
-  user         User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user         User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  subject      String
-  category     TicketCategory @default(OTHER)
-  priority     TicketPriority @default(MEDIUM)
-  status       TicketStatus   @default(OPEN)
+  subject  String
+  category TicketCategory @default(OTHER)
+  priority TicketPriority @default(MEDIUM)
+  status   TicketStatus   @default(OPEN)
 
   assignedAdminId String?
-  assignedAdmin   Admin?       @relation("AssignedSupportTickets", fields: [assignedAdminId], references: [id])
+  assignedAdmin   Admin?  @relation("AssignedSupportTickets", fields: [assignedAdminId], references: [id])
 
   messages SupportMessage[]
 
@@ -886,14 +894,14 @@ model SupportMessage {
 // --------------------------------------------------------
 
 model CmsPage {
-  id              String            @id @default(uuid())
-  slug            String            @unique
+  id              String  @id @default(uuid())
+  slug            String  @unique
   title           String
-  content         String            @db.Text
+  content         String  @db.Text
   metaTitle       String?
   metaDescription String?
-  isPublished     Boolean           @default(true)
-  version         Int               @default(1)
+  isPublished     Boolean @default(true)
+  version         Int     @default(1)
 
   updatedById String?
   updatedBy   Admin?  @relation("CmsPageUpdatedBy", fields: [updatedById], references: [id])
@@ -928,22 +936,21 @@ model CmsPageRevision {
 // --------------------------------------------------------
 
 model Banner {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   title        String
-  thumbnailUrl String   @db.Text
-  linkUrl      String   @db.Text
-  description  String?  @db.Text
+  thumbnailUrl String  @db.Text
+  linkUrl      String  @db.Text
+  description  String? @db.Text
   badgeText    String?
-  displayOrder Int      @default(0)
-  isActive     Boolean  @default(true)
+  displayOrder Int     @default(0)
+  isActive     Boolean @default(true)
 
-  createdById  String?
-  createdBy    Admin?   @relation("BannerCreatedBy", fields: [createdById], references: [id])
+  createdById String?
+  createdBy   Admin?  @relation("BannerCreatedBy", fields: [createdById], references: [id])
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@index([displayOrder])
 }
-

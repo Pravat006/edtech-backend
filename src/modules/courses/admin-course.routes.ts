@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { verifyAdmin } from "@/middlewares/verifyAdmin";
 import * as adminCourseController from "./admin-course.controller";
+import { adminQuizRouter } from "../quizzes/quiz.routes";
 
 const router = Router();
 
@@ -24,6 +25,8 @@ router.delete(
     "/:courseId/modules/:moduleId/lessons/:lessonId",
     adminCourseController.deleteLesson
 );
+
+router.use("/:courseId/modules/:moduleId/lessons/:lessonId/quiz", adminQuizRouter);
 
 // Reorder endpoints must be defined BEFORE parameterized :contentId endpoints to prevent "reorder" from matching :contentId
 router.patch("/:courseId/modules/reorder", adminCourseController.reorderModules);
