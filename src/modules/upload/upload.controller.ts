@@ -14,6 +14,7 @@ import { imageKitCompleteSchema, bunnyStorageCompleteSchema } from "./upload.sch
 import { MediaProviderFactory } from "./providers/media-provider.factory";
 import { db } from "@/config/database";
 import { MediaType } from "../../../generated/prisma";
+import fileType from "file-type";
 
 export const initiateUploadController = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -203,6 +204,22 @@ export const directBunnyStorageUploadController = async (req: Request, res: Resp
         // Ensure provider has uploadDirect (BunnyStorageMediaProvider has this)
         if (!("uploadDirect" in storageProvider)) {
             throw new ApiError(status.INTERNAL_SERVER_ERROR, "Direct upload not supported by current provider");
+        }
+
+        // --- SECURITY VALIDATION: Content Magic Numbers ---
+        const detectedType = await fileType.fromBuffer(fileBuffer);
+        if (!detectedType) {
+            throw new ApiError(status.BAD_REQUEST, "Unable to determine file content type. Invalid file.");
+        }
+
+        const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
+        if (!allowedMimeTypes.includes(detectedType.mime)) {
+            throw new ApiError(status.BAD_REQUEST, `File content type ${detectedType.mime} is not allowed.`);
+        }
+        
+        // Ensure the client-provided MIME type matches the actual binary content
+        if (!mimeType.startsWith("application/octet-stream") && detectedType.mime !== mimeType) {
+            throw new ApiError(status.BAD_REQUEST, "File content does not match the provided extension/MIME type.");
         }
 
         const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, "_");
