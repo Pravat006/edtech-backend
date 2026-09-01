@@ -10,8 +10,14 @@ import "./workers/notification.worker"; // Import to initialize and start the Bu
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
-// Initialize WebSocket Chat Gateway
-chatGateway.init(server);
+// Feature Toggle: WebSocket Chat Gateway (Set to true to re-enable socket connections)
+const ENABLE_WEBSOCKET_CHAT = false;
+
+if (ENABLE_WEBSOCKET_CHAT) {
+    chatGateway.init(server);
+} else {
+    logger.info("[ChatWebSocketGateway] WebSocket Chat Gateway is disabled.");
+}
 
 server.listen(Number(PORT), "0.0.0.0", () => {
     logger.info(`[SERVER] backend is live on http://0.0.0.0:${PORT}`);

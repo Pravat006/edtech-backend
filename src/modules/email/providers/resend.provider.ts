@@ -10,7 +10,7 @@ export class ResendEmailProvider implements IEmailProvider {
     constructor(apiKey?: string, defaultFromEmail?: string, defaultFromName?: string) {
         this.apiKey = apiKey || process.env.RESEND_API_KEY || "";
         this.defaultFromEmail = defaultFromEmail || process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
-        this.defaultFromName = defaultFromName || process.env.EMAIL_FROM_NAME || "Supermind LMS";
+        this.defaultFromName = defaultFromName || process.env.EMAIL_FROM_NAME || "Vie Brain";
     }
 
     public async sendEmail(options: SendEmailOptions): Promise<EmailSendResult> {

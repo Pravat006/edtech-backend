@@ -97,15 +97,15 @@ const EnvConfigSchema = z.object({
     AI_PROMPT_VERSION: z.string().trim().default("v1"),
     AI_INITIAL_WELCOME_CREDITS: z.coerce.number().default(5),
 
-    // Rate Limiting Configuration
+    // Rate Limiting Configuration (Sane & Developer-Friendly Defaults)
     RL_PUBLIC_WINDOW_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
-    RL_PUBLIC_MAX: z.coerce.number().int().positive().default(100),
+    RL_PUBLIC_MAX: z.coerce.number().int().positive().default(2000),
     RL_AUTH_USER_WINDOW_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
-    RL_AUTH_USER_MAX: z.coerce.number().int().positive().default(1000),
-    RL_AUTH_IP_WINDOW_MS: z.coerce.number().int().positive().default(3600000), // 1 hour
-    RL_AUTH_IP_MAX: z.coerce.number().int().positive().default(20),
-    RL_AUTH_ACCOUNT_MAX: z.coerce.number().int().positive().default(5),
-    RL_AUTH_ACCOUNT_BLOCK_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
+    RL_AUTH_USER_MAX: z.coerce.number().int().positive().default(5000),
+    RL_AUTH_IP_WINDOW_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
+    RL_AUTH_IP_MAX: z.coerce.number().int().positive().default(120),
+    RL_AUTH_ACCOUNT_MAX: z.coerce.number().int().positive().default(30),
+    RL_AUTH_ACCOUNT_BLOCK_MS: z.coerce.number().int().positive().default(120000), // 2 minutes block
 });
 
 // Define the config type using Zod inference

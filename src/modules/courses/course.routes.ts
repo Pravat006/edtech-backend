@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticateUser } from "@/middlewares/auth.middleware";
 import * as courseController from "./course.controller";
+import { downloadLessonContentController } from "./download.controller";
 import { publicQuizRouter } from "../quizzes/quiz.routes";
 
 const router = Router();
@@ -15,6 +16,7 @@ router.get("/:courseId", courseController.getCourseDetail);
 
 router.get("/:courseId/learn", courseController.getLearnData);
 router.get("/:courseId/lessons/:lessonId/content", courseController.getLessonContent);
+router.get("/:courseId/lessons/:lessonId/download/:contentId", downloadLessonContentController);
 router.patch(
     "/:courseId/lessons/:lessonId/progress",
     courseController.updateLessonProgress

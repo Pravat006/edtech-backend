@@ -16,7 +16,7 @@ import {
 const router = Router();
 const userRouter = Router();
 
-userRouter.post("/check", authEndpointLimiter, userAuth.checkUserExists);
+userRouter.post("/check", userAuth.checkUserExists);
 userRouter.post("/otp/send", authEndpointLimiter, validateRequest(SendOtpSchema), userAuth.sendOtp);
 userRouter.post("/otp/verify", authEndpointLimiter, validateRequest(VerifyOtpSchema), userAuth.verifyOtp);
 userRouter.post("/set-password", authEndpointLimiter, validateRequest(SetPasswordSchema), userAuth.setPassword);

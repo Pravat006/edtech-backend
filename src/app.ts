@@ -7,6 +7,7 @@ import { convertError, errorMiddleware } from "./middleware/error.middleware";
 import { httpLogger } from "./config/logger";
 
 const app = express();
+app.set("trust proxy", true);
 httpLogger(app);
 
 

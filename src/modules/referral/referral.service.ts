@@ -90,7 +90,7 @@ class ReferralService {
         return {
             referralCode: referralCodeObj.code,
             shareUrl: `https://supermind.app/invite?code=${referralCodeObj.code}`,
-            shareText: `Join me on Supermind Education! Use my referral code ${referralCodeObj.code} to get ${config.refereeRewardCredits} bonus credits on your account. Download now!`,
+            shareText: `Join me on Vie Brain! Use my referral code ${referralCodeObj.code} to get ${config.refereeRewardCredits} bonus credits on your account. Download now!`,
             walletBalance: wallet.balanceCredits,
             totalReferrals,
             rewardedReferrals,
@@ -149,7 +149,7 @@ class ReferralService {
         return {
             valid: true,
             code: refCode.code,
-            referrerName: refCode.user.name || "A Supermind User",
+            referrerName: refCode.user.name || "A Vie Brain User",
             bonusCredits: config.refereeRewardCredits,
         };
     }

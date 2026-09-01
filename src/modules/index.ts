@@ -18,37 +18,38 @@ import aiChatRoutes from "./ai-chat/ai-chat.routes";
 import { publicSettingsRouter } from "./settings/settings.routes";
 import { calendarRouter } from "./calendar/calendar.routes";
 import legalRouter from "./legal/legal.routes";
-import { publicRateLimiter, authenticatedRateLimiter } from "@/middleware/rateLimiter";
+import { authenticatedRateLimiter } from "@/middleware/rateLimiter";
 
 const router = Router();
 
 // User Flow Routes
 router.use("/auth", authRoutes); // authRoutes has authEndpointLimiter internally
-router.use("/user", authenticatedRateLimiter, userRoutes);
+router.use("/user", userRoutes);
+router.use("/users", userRoutes);
 
 // Admin Flow Routes
 router.use("/admin", adminRoutes);
 
-// Public & Content Routes (Public Rate Limit)
-router.use("/content", publicRateLimiter, cmsRoutes);
-router.use("/content", publicRateLimiter, publicBannerRouter);
-router.use("/public/settings", publicRateLimiter, publicSettingsRouter);
-router.use("/public/calendar", publicRateLimiter, calendarRouter);
-router.use("/public", publicRateLimiter, publicRoutes);
-router.use("/courses", publicRateLimiter, courseRoutes); // Courses has both public/private, but mostly public discovery
-router.use("/upload", publicRateLimiter, uploadRouter);
-router.use("/media", publicRateLimiter, uploadRouter);
+// Public & Content Routes
+router.use("/content", cmsRoutes);
+router.use("/content", publicBannerRouter);
+router.use("/public/settings", publicSettingsRouter);
+router.use("/public/calendar", calendarRouter);
+router.use("/public", publicRoutes);
+router.use("/courses", courseRoutes);
+router.use("/upload", uploadRouter);
+router.use("/media", uploadRouter);
 
-// Authenticated Routes (Looser Rate Limit)
-router.use("/enrollments", authenticatedRateLimiter, enrollmentRoutes);
-router.use("/payments", authenticatedRateLimiter, paymentRoutes);
-router.use("/profile", authenticatedRateLimiter, profileRoutes);
-router.use("/support", authenticatedRateLimiter, supportRoutes);
-router.use("/wishlist", authenticatedRateLimiter, wishlistRoutes);
-router.use("/referrals", authenticatedRateLimiter, referralRoutes);
-router.use("/community", authenticatedRateLimiter, communityRoutes);
-router.use("/ai-chat", authenticatedRateLimiter, aiChatRoutes);
-router.use("/legal", authenticatedRateLimiter, legalRouter);
+// Authenticated Routes
+router.use("/enrollments", enrollmentRoutes);
+router.use("/payments", paymentRoutes);
+router.use("/profile", profileRoutes);
+router.use("/support", supportRoutes);
+router.use("/wishlist", wishlistRoutes);
+router.use("/referrals", referralRoutes);
+router.use("/community", communityRoutes);
+router.use("/ai-chat", authenticatedRateLimiter, aiChatRoutes); // Keep rate limiter on AI Doubt Solver to prevent token abuse
+router.use("/legal", legalRouter);
 
 export default router;
 

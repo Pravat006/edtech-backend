@@ -111,6 +111,23 @@ export class BunnyStreamMediaProvider implements IVideoStreamProvider {
     }
 
     /**
+     * Official Bunny Stream MP4 Fallback / Direct Video Download Token Signing
+     * Returns signed direct download link for video offline caching.
+     */
+    public generateSignedDownloadUrl(videoId: string, quality = "720p", userIp?: string, ttlSeconds = 3600): string {
+        this.ensureConfig();
+
+        const expiration = Math.floor(Date.now() / 1000) + ttlSeconds;
+        const secret = this.tokenKey || this.apiKey;
+        const hashInput = userIp ? `${secret}${videoId}${expiration}${userIp}` : `${secret}${videoId}${expiration}`;
+        const token = crypto.createHash("sha256").update(hashInput).digest("hex");
+
+        // Format for Bunny Stream direct MP4 fallback or CDN stream file
+        return `https://vz-${this.libraryId}.b-cdn.net/${videoId}/play_${quality}.mp4?token=${token}&expires=${expiration}`;
+    }
+
+
+    /**
      * Official Bunny Stream API: Delete Video
      * DELETE https://video.bunnycdn.com/library/{libraryId}/videos/{videoId}
      */

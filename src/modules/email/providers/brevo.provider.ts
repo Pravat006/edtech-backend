@@ -10,7 +10,7 @@ export class BrevoEmailProvider implements IEmailProvider {
     constructor(apiKey?: string, defaultFromEmail?: string, defaultFromName?: string) {
         this.apiKey = apiKey || process.env.BREVO_API_KEY || "";
         this.defaultFromEmail = defaultFromEmail || process.env.EMAIL_FROM_ADDRESS || "noreply@supermind.com";
-        this.defaultFromName = defaultFromName || process.env.EMAIL_FROM_NAME || "Supermind LMS";
+        this.defaultFromName = defaultFromName || process.env.EMAIL_FROM_NAME || "Vie Brain";
     }
 
     public async sendEmail(options: SendEmailOptions): Promise<EmailSendResult> {

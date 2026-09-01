@@ -234,7 +234,6 @@ class UserService {
             success: true,
             message: `Verification code sent to ${cleanEmail}`,
             email: cleanEmail,
-            devOtp: process.env.NODE_ENV === "development" ? otpCode : undefined,
         };
     }
 
@@ -388,7 +387,6 @@ class UserService {
             message: `Credential and password verified. A 6-digit deletion OTP has been sent via ${method} to ${target}.`,
             method,
             target,
-            devOtp: (process.env.NODE_ENV === "development" || method === "SMS") ? otpCode : undefined,
         };
     }
 
@@ -428,9 +426,8 @@ class UserService {
             throw new APIError(httpStatus.BAD_REQUEST, "Invalid deletion request state.");
         }
 
-        // For Phone (SMS) deletion, accept mock 6-digit OTP codes when MSG91 is unconfigured
-        const isSmsMock = storedData.method === "SMS";
-        if (!isSmsMock && storedData.otp !== cleanOtp) {
+        // Verify that the submitted 6-digit OTP matches the stored OTP in Redis
+        if (storedData.otp !== cleanOtp) {
             throw new APIError(httpStatus.BAD_REQUEST, "Incorrect verification OTP. Account deletion cancelled.");
         }
 

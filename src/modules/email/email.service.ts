@@ -27,7 +27,7 @@ export class EmailService {
 
             const result = await provider.sendEmail({
                 to: params.to,
-                subject: "Invitation: Set Up Your Sub-Admin Account - Supermind Education",
+                subject: "Invitation: Set Up Your Sub-Admin Account - Vie Brain",
                 html,
                 text,
             });
@@ -99,7 +99,7 @@ export class EmailService {
 
             const result = await provider.sendEmail({
                 to: params.to,
-                subject: "Reset Your Account Password - Supermind Education",
+                subject: "Reset Your Account Password - Vie Brain",
                 html,
                 text,
             });
@@ -128,7 +128,7 @@ export class EmailService {
 
             const result = await provider.sendEmail({
                 to: params.to,
-                subject: `${params.otpCode} is your Supermind Email Verification Code`,
+                subject: `${params.otpCode} is your Vie Brain Email Verification Code`,
                 html,
                 text,
             });

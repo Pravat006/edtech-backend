@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { IMediaProvider, UploadAuthParams, CompleteUploadInput } from "./media-provider.interface";
 import { logger } from "@/config/logger";
 import { APIError } from "@/utils/APIError";
@@ -149,4 +150,34 @@ export class BunnyStorageMediaProvider implements IMediaProvider {
             return false;
         }
     }
+
+    /**
+     * Generate signed token-authenticated download URL for Bunny Storage CDN files.
+     * Uses SHA256 token signing with expiring TTL.
+     */
+    public generateSignedDownloadUrl(fileKeyOrUrl: string, ttlSeconds = 3600): string {
+        const expiration = Math.floor(Date.now() / 1000) + ttlSeconds;
+        let path = fileKeyOrUrl;
+        if (fileKeyOrUrl.startsWith("http")) {
+            try {
+                const urlObj = new URL(fileKeyOrUrl);
+                path = urlObj.pathname;
+            } catch {
+                path = fileKeyOrUrl;
+            }
+        }
+        if (!path.startsWith("/")) path = "/" + path;
+
+        const secret = this.apiKey;
+        const hashInput = `${secret}${path}${expiration}`;
+        const token = crypto.createHash("sha256").update(hashInput).digest("hex");
+
+        const baseUrl = fileKeyOrUrl.startsWith("http")
+            ? fileKeyOrUrl
+            : `https://${this.cdnHost}${path}`;
+
+        const separator = baseUrl.includes("?") ? "&" : "?";
+        return `${baseUrl}${separator}token=${token}&expires=${expiration}`;
+    }
 }
+
