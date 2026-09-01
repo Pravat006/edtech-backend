@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
 import { courseService } from "./course.service";
-import { CertificateService } from "../certificates/certificate.service";
 import {
     CourseListQuerySchema,
     UpdateProgressSchema,
@@ -92,15 +91,10 @@ export const updateLessonProgress = async (req: Request, res: Response) => {
         parsed.data
     );
 
-    if (result.newlyCreatedCertId) {
-        CertificateService.generateCertificateBackground(result.newlyCreatedCertId);
-    }
-
     res.status(httpStatus.OK).json({
         success: true,
         data: result.progress,
-        certificateIssued: result.certificateIssued,
-        ...(result.message && { message: result.message }),
+        certificateIssued: result.certificateIssued
     });
 };
 

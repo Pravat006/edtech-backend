@@ -1,5 +1,5 @@
 import { db } from "@/config/database";
-import { cleanupOldMediaAsset } from "@/services/imagekit.service";
+import { cleanupOldMediaAsset } from "@/modules/upload/upload-cleanup.service";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import {

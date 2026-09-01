@@ -4,6 +4,8 @@ import { logger } from "./config/logger";
 import { referralService } from "./modules/referral/referral.service";
 import { chatGateway } from "./websocket/chat.gateway";
 import { seedDefaultCmsPages } from "./modules/content/cms.seeder";
+import { NotificationQueueService } from "./workers/notification.queue";
+import "./workers/notification.worker"; // Import to initialize and start the BullMQ worker
 
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
@@ -29,5 +31,9 @@ server.listen(Number(PORT), "0.0.0.0", () => {
     seedDefaultCmsPages().catch((err) => {
         logger.error("[CMS_SEEDER] Failed to seed default static pages:", err);
     });
+
+    // Initialize BullMQ Scheduled Cron Jobs for Push Notifications
+    NotificationQueueService.scheduleDripContentJob().catch(err => logger.error("Failed to schedule drip content cron:", err));
+    NotificationQueueService.scheduleInactivityReminderJob().catch(err => logger.error("Failed to schedule inactivity cron:", err));
 });
 

@@ -5,6 +5,7 @@ import { razorpayService } from "@/services/razorpay.service";
 import envVars from "@/config/envVars";
 import { logger } from "@/config/logger";
 import { referralService } from "../referral/referral.service";
+import { NotificationQueueService } from "@/workers/notification.queue";
 
 class PaymentService {
     /**
@@ -107,6 +108,14 @@ class PaymentService {
                 return newEnrollment;
             });
 
+            // Send Push Notification
+            NotificationQueueService.sendPushToUser(
+                userId,
+                "Welcome aboard! 🎉",
+                `You have successfully enrolled in ${course.title}. Start learning now!`,
+                { courseId: course.id }
+            ).catch(err => logger.error("Failed to queue push notification:", err));
+
             return {
                 isFree: true,
                 enrollment,
@@ -156,7 +165,7 @@ class PaymentService {
      * Verifies Razorpay payment signature and finalizes enrollment inside a transaction.
      */
     public async verifyPayment(userId: string, paymentId: string, orderId: string, signature: string) {
-        return await db.$transaction(async (tx) => {
+        const result = await db.$transaction(async (tx) => {
             // 1. Fetch the PENDING payment record
             const payment = await tx.payment.findFirst({
                 where: { providerOrderId: orderId, userId },
@@ -174,7 +183,7 @@ class PaymentService {
                     const existingEnrollment = await tx.enrollment.findUnique({
                         where: { id: payment.enrollmentId },
                     });
-                    if (existingEnrollment) return existingEnrollment;
+                    if (existingEnrollment) return existingEnrollment; // Early return raw enrollment
                 }
                 throw new APIError(httpStatus.BAD_REQUEST, "Payment is already processed");
             }
@@ -285,8 +294,20 @@ class PaymentService {
                 });
             }, 0);
 
-            return enrollment;
+            return { enrollment, courseTitle: course.title };
         });
+        
+        // After successful transaction
+        if ('courseTitle' in result && result.courseTitle) {
+            NotificationQueueService.sendPushToUser(
+                userId,
+                "Welcome aboard! 🎉",
+                `You have successfully enrolled in ${result.courseTitle}. Start learning now!`,
+                { courseId: result.enrollment.courseId }
+            ).catch(err => logger.error("Failed to queue push notification:", err));
+        }
+
+        return 'enrollment' in result ? result.enrollment : result;
     }
 
     /**
@@ -296,25 +317,25 @@ class PaymentService {
         const paymentData = payload.payment.entity;
         const orderId = paymentData.order_id;
 
-        return await db.$transaction(async (tx) => {
+        const result = await db.$transaction(async (tx) => {
             const payment = await tx.payment.findFirst({
                 where: { providerOrderId: orderId },
                 include: { user: true },
             });
 
-            if (!payment || !payment.userId) return;
+            if (!payment || !payment.userId) return null;
 
             // Idempotency check
-            if (payment.status === "SUCCESS") return;
+            if (payment.status === "SUCCESS") return null;
 
             // Fetch courseId from Razorpay order notes
             const rzpOrder = await razorpayService.fetchOrder(orderId);
             const courseId = rzpOrder.notes?.courseId as string;
 
-            if (!courseId) return;
+            if (!courseId) return null;
 
             const course = await tx.course.findUnique({ where: { id: courseId } });
-            if (!course) return;
+            if (!course) return null;
 
             const expiresAt = course.accessDurationDays
                 ? new Date(Date.now() + course.accessDurationDays * 86400000)
@@ -358,7 +379,18 @@ class PaymentService {
                     currency: payment.currency,
                 },
             });
+            
+            return { courseTitle: course.title, userId: payment.userId };
         });
+        
+        if (result && result.courseTitle) {
+            NotificationQueueService.sendPushToUser(
+                result.userId,
+                "Welcome aboard! 🎉",
+                `You have successfully enrolled in ${result.courseTitle}. Start learning now!`,
+                { courseId: paymentData.notes?.courseId }
+            ).catch(err => logger.error("Failed to queue push notification:", err));
+        }
     }
 
     /**

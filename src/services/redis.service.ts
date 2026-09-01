@@ -39,6 +39,10 @@ class RedisService {
         await this.client.quit();
     }
 
+    getClient(): Redis {
+        return this.client;
+    }
+
     async getValue(key: string): Promise<string | null> {
         const data = await this.client.get(key);
         if (data) {

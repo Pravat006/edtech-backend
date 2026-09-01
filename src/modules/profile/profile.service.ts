@@ -3,7 +3,8 @@ import { APIError } from "@/utils/APIError";
 import httpStatus from "http-status";
 import { MediaType } from "@/../../generated/prisma";
 import { UpdateAddress, UpdatePersonalDetails, UpdateEducationDetails } from "./profile.schema";
-import { cleanupOldMediaAsset } from "@/services/imagekit.service";
+import { cleanupOldMediaAsset } from "@/modules/upload/upload-cleanup.service";
+import { NotificationQueueService } from "@/workers/notification.queue";
 
 async function validateMediaAsset(
     id: string,
@@ -163,6 +164,19 @@ class ProfileService {
                 reason: params.reason,
             }).catch(() => {});
         }
+
+        // Trigger Push Notification
+        const title = params.status === "APPROVED" ? "Verification Approved ✅" : "Verification Rejected ❌";
+        const body = params.status === "APPROVED" 
+            ? `Your ${params.documentType} has been approved. You have full access!`
+            : `Your ${params.documentType} was rejected. Reason: ${params.reason || "Invalid document"}`;
+            
+        NotificationQueueService.sendPushToUser(
+            user.id,
+            title,
+            body,
+            { documentType: params.documentType, status: params.status }
+        ).catch(err => console.error("Failed to queue push notification:", err));
 
         return {
             success: true,

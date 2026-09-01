@@ -170,6 +170,68 @@ export const completeBunnyStorageUploadController = async (req: Request, res: Re
 };
 
 /**
+ * Proxy upload to Bunny Storage (Used by Mobile App for secure uploads without exposing API keys)
+ * POST /v1/upload/storage/direct
+ */
+export const directBunnyStorageUploadController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).user?.id || (req as any).admin?.id;
+        if (!userId) throw new ApiError(status.UNAUTHORIZED, "Unauthorized action");
+
+        let fileBuffer: Buffer;
+        let originalName: string;
+        let mimeType: string;
+        let size: number;
+
+        if (req.file) {
+            fileBuffer = req.file.buffer;
+            originalName = req.file.originalname;
+            mimeType = req.file.mimetype;
+            size = req.file.size;
+        } else if (req.body && req.body.base64) {
+            const base64Data = req.body.base64.replace(/^data:.*?;base64,/, "");
+            fileBuffer = Buffer.from(base64Data, "base64");
+            originalName = req.body.fileName || `file_${Date.now()}.jpg`;
+            mimeType = req.body.mimeType || "application/octet-stream";
+            size = fileBuffer.length;
+        } else {
+            throw new ApiError(status.BAD_REQUEST, "No file provided for upload");
+        }
+
+        const storageProvider = MediaProviderFactory.getMediaProvider("bunny_storage");
+        
+        // Ensure provider has uploadDirect (BunnyStorageMediaProvider has this)
+        if (!("uploadDirect" in storageProvider)) {
+            throw new ApiError(status.INTERNAL_SERVER_ERROR, "Direct upload not supported by current provider");
+        }
+
+        const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, "_");
+        const fileName = `${userId}_${Date.now()}_${safeName}`;
+        
+        // Upload buffer directly to Bunny
+        const uploadResult = await (storageProvider as any).uploadDirect(fileBuffer, fileName);
+
+        // Register in DB via completeUpload logic
+        const input = {
+            userId,
+            fileId: uploadResult.fileId,
+            url: uploadResult.url,
+            mimeType,
+            size,
+            storageKey: uploadResult.fileId,
+        };
+
+        const completedUpload = await storageProvider.completeUpload(input);
+
+        res.status(status.OK).json(
+            new ApiResponse(status.OK, "File uploaded to storage successfully", completedUpload)
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * get multipart urls
  */
 export const getMultipartUrlsController = async (req: Request, res: Response, next: NextFunction) => {

@@ -2,7 +2,7 @@ import { db } from "@/config/database";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import { UpdateProfile, UpdatePreferences } from "./user.schema";
-import { cleanupOldMediaAsset } from "@/services/imagekit.service";
+import { cleanupOldMediaAsset } from "@/modules/upload/upload-cleanup.service";
 
 class UserService {
     public async getProfile(userId: string) {

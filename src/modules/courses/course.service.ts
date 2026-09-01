@@ -2,6 +2,8 @@ import { db, Prisma } from "@/config/database";
 import httpStatus from "http-status";
 import { APIError } from "@/utils/APIError";
 import { CourseListQuery, UpdateProgress, SubmitReview } from "./course.schema";
+import { CertificateService } from "../certificates/certificate.service";
+import { NotificationQueueService } from "@/workers/notification.queue";
 
 const COURSE_SELECT = {
     id: true,
@@ -648,7 +650,7 @@ class CourseService {
     ) {
         const now = new Date();
 
-        return await db.$transaction(async (tx) => {
+        const result = await db.$transaction(async (tx) => {
             // 1. Verify lesson exists and belongs to the given course
             const lesson = await tx.lesson.findFirst({
                 where: {
@@ -659,6 +661,13 @@ class CourseService {
                     id: true,
                     isFreePreview: true,
                     durationSec: true,
+                    module: {
+                        select: {
+                            course: {
+                                select: { title: true }
+                            }
+                        }
+                    }
                 },
             });
 
@@ -781,8 +790,30 @@ class CourseService {
                 progress,
                 certificateIssued,
                 newlyCreatedCertId,
+                courseTitle: lesson.module.course.title // Fetching title for notification
             };
         });
+
+        if (result.certificateIssued && result.newlyCreatedCertId) {
+            // Trigger Certificate Generation Service in Background
+            CertificateService.generateCertificateBackground(result.newlyCreatedCertId).catch(err => {
+                console.error("Failed background cert generation", err);
+            });
+
+            // Trigger Push Notification
+            NotificationQueueService.sendPushToUser(
+                userId,
+                "Congratulations! 🎓",
+                `You have completed ${result.courseTitle}. View your official certificate now!`,
+                { courseId, certificateId: result.newlyCreatedCertId }
+            ).catch(err => console.error("Failed to queue push notification:", err));
+        }
+
+        return {
+            progress: result.progress,
+            certificateIssued: result.certificateIssued,
+            newlyCreatedCertId: result.newlyCreatedCertId,
+        };
     }
 
     /**
