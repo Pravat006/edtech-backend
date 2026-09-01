@@ -49,6 +49,7 @@
         "multer": "^2.2.0",
         "nodemailer": "9.0.5",
         "pg": "^8.23.0",
+        "rate-limiter-flexible": "^11.2.0",
         "razorpay": "^2.9.8",
         "ts-node": "^10.9.2",
         "twilio": "^6.1.0",
@@ -73,6 +74,6 @@
         "nodemon": "^3.1.14",
         "prisma": "7.9.1",
         "tsc-alias": "^1.9.2",
-        "vercel": "^59.5.0"
+        "vercel": "^59.10.0"
     }
 }

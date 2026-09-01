@@ -96,6 +96,16 @@ const EnvConfigSchema = z.object({
     AI_CACHE_TTL_SECONDS: z.coerce.number().default(86400),
     AI_PROMPT_VERSION: z.string().trim().default("v1"),
     AI_INITIAL_WELCOME_CREDITS: z.coerce.number().default(5),
+
+    // Rate Limiting Configuration
+    RL_PUBLIC_WINDOW_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
+    RL_PUBLIC_MAX: z.coerce.number().int().positive().default(100),
+    RL_AUTH_USER_WINDOW_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
+    RL_AUTH_USER_MAX: z.coerce.number().int().positive().default(1000),
+    RL_AUTH_IP_WINDOW_MS: z.coerce.number().int().positive().default(3600000), // 1 hour
+    RL_AUTH_IP_MAX: z.coerce.number().int().positive().default(20),
+    RL_AUTH_ACCOUNT_MAX: z.coerce.number().int().positive().default(5),
+    RL_AUTH_ACCOUNT_BLOCK_MS: z.coerce.number().int().positive().default(900000), // 15 minutes
 });
 
 // Define the config type using Zod inference
@@ -185,6 +195,14 @@ const rawConfig = {
     AI_CACHE_TTL_SECONDS: process.env.AI_CACHE_TTL_SECONDS,
     AI_PROMPT_VERSION: process.env.AI_PROMPT_VERSION,
     AI_INITIAL_WELCOME_CREDITS: process.env.AI_INITIAL_WELCOME_CREDITS,
+    RL_PUBLIC_WINDOW_MS: process.env.RL_PUBLIC_WINDOW_MS,
+    RL_PUBLIC_MAX: process.env.RL_PUBLIC_MAX,
+    RL_AUTH_USER_WINDOW_MS: process.env.RL_AUTH_USER_WINDOW_MS,
+    RL_AUTH_USER_MAX: process.env.RL_AUTH_USER_MAX,
+    RL_AUTH_IP_WINDOW_MS: process.env.RL_AUTH_IP_WINDOW_MS,
+    RL_AUTH_IP_MAX: process.env.RL_AUTH_IP_MAX,
+    RL_AUTH_ACCOUNT_MAX: process.env.RL_AUTH_ACCOUNT_MAX,
+    RL_AUTH_ACCOUNT_BLOCK_MS: process.env.RL_AUTH_ACCOUNT_BLOCK_MS,
 };
 
 // Validate and parse configuration
@@ -274,6 +292,14 @@ export const {
     AI_CACHE_TTL_SECONDS,
     AI_PROMPT_VERSION,
     AI_INITIAL_WELCOME_CREDITS,
+    RL_PUBLIC_WINDOW_MS,
+    RL_PUBLIC_MAX,
+    RL_AUTH_USER_WINDOW_MS,
+    RL_AUTH_USER_MAX,
+    RL_AUTH_IP_WINDOW_MS,
+    RL_AUTH_IP_MAX,
+    RL_AUTH_ACCOUNT_MAX,
+    RL_AUTH_ACCOUNT_BLOCK_MS,
 } = envVars;
 
 export default envVars;

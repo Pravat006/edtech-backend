@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-export const CreateConversationSchema = z.object({
+export const CreateConversationSchema = z.strictObject({
     courseId: z.string().optional(),
     lessonId: z.string().optional(),
     title: z.string().max(100).optional(),
 });
 
-export const AskDoubtSchema = z.object({
+export const AskDoubtSchema = z.strictObject({
     courseId: z.string().optional(),
     lessonId: z.string().optional(),
     conversationId: z.string().optional(),

@@ -1,35 +1,35 @@
 import { z } from "zod";
 
-export const createVideoSlotSchema = z.object({
+export const createVideoSlotSchema = z.strictObject({
     title: z.string().optional(),
     replaceMediaAssetId: z.string().uuid("Invalid MediaAsset ID format").optional()
 });
 
-export const deleteAssetSchema = z.object({
+export const deleteAssetSchema = z.strictObject({
     id: z.string().min(1, "Asset ID or Storage Key is required")
 });
 
-export const initiateUploadSchema = z.object({
+export const initiateUploadSchema = z.strictObject({
     filename: z.string().min(1, "Filename is required"),
     size: z.number().nonnegative("Size must be a positive number"), // or z.string() if expecting huge files as string
     mimeType: z.string().min(1, "Mime type is required"),
 });
 
-export const completeUploadPartSchema = z.object({
+export const completeUploadPartSchema = z.strictObject({
     ETag: z.string(),
     PartNumber: z.number().int().positive()
 });
 
-export const completeUploadSchema = z.object({
+export const completeUploadSchema = z.strictObject({
     fileId: z.string().cuid("Invalid File ID"),
     parts: z.array(completeUploadPartSchema).min(1, "At least one part is required").optional()
 });
 
-export const abortUploadSchema = z.object({
+export const abortUploadSchema = z.strictObject({
     fileId: z.string().cuid("Invalid File ID")
 });
 
-export const imageKitCompleteSchema = z.object({
+export const imageKitCompleteSchema = z.strictObject({
     fileId: z.string().min(1, "ImageKit File ID is required"),
     url: z.string().url("Valid URL is required"),
     name: z.string().min(1, "Name is required"),
@@ -40,7 +40,7 @@ export const imageKitCompleteSchema = z.object({
     width: z.number().optional()
 });
 
-export const bunnyStorageCompleteSchema = z.object({
+export const bunnyStorageCompleteSchema = z.strictObject({
     fileId: z.string().min(1, "File ID (storage key) is required"),
     url: z.string().url("Valid CDN URL is required"),
     size: z.number().nonnegative().optional(),

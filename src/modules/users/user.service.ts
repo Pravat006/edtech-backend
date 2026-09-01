@@ -97,6 +97,34 @@ class UserService {
         });
     }
 
+    public async exportUserData(userId: string) {
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            include: {
+                personalDetails: true,
+                educationDetails: true,
+                address: true,
+                preferences: true,
+                wallet: true,
+                referralCode: true,
+                enrollments: { include: { course: { select: { title: true } } } },
+                progress: { include: { lesson: { select: { title: true } } } },
+                payments: true,
+                transactions: true,
+                legalConsents: {
+                    include: { page: { select: { title: true, slug: true } } }
+                }
+            }
+        });
+        
+        if (!user) throw new APIError(httpStatus.NOT_FOUND, "User not found");
+        
+        // Exclude internal operational fields before exporting
+        const { password, expoPushToken, ...safeData } = user;
+        
+        return safeData;
+    }
+
     /**
      * Step 1: Request Phone Number Change (Sends SMS OTP)
      */
@@ -482,10 +510,14 @@ class UserService {
             data: { userId: null },
         });
 
-        // 4. Close & anonymize Support Tickets
+        // 4. Close & anonymize Support Tickets and Messages
         await db.supportTicket.updateMany({
             where: { userId },
             data: { userId: null, status: "CLOSED" },
+        });
+        await db.supportMessage.updateMany({
+            where: { senderUserId: userId },
+            data: { senderUserId: null },
         });
 
         // 5. Purge Redis sessions / caches for this user

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const createBannerSchema = z.object({
+export const createBannerSchema = z.strictObject({
     title: z.string().min(1, "Title is required"),
     thumbnailUrl: z.string().url("Thumbnail must be a valid URL"),
     linkUrl: z.string().min(1, "Link URL is required"),
@@ -12,16 +12,16 @@ export const createBannerSchema = z.object({
 
 export const updateBannerSchema = createBannerSchema.partial();
 
-export const reorderBannersSchema = z.object({
+export const reorderBannersSchema = z.strictObject({
     orders: z.array(
-        z.object({
+        z.strictObject({
             id: z.string(),
             displayOrder: z.number().int(),
         })
     ),
 });
 
-export const uploadBannerImageSchema = z.object({
+export const uploadBannerImageSchema = z.strictObject({
     file: z.string().min(1, "Base64 file or image URL is required"),
     fileName: z.string().optional().default("banner.jpg"),
 });

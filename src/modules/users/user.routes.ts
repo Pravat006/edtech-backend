@@ -28,6 +28,8 @@ router.patch("/profile", validateRequest(UpdateProfileSchema), userController.up
 router.delete("/profile", userController.deleteMyAccount);
 router.delete("/me", userController.deleteMyAccount);
 
+router.get("/export", userController.exportUserData);
+
 router.get("/preferences", userController.getPreferences);
 router.put("/preferences", validateRequest(UpdatePreferencesSchema), userController.updatePreferences);
 

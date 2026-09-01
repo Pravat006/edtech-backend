@@ -94,4 +94,14 @@ export const deleteMyAccount = async (req: Request, res: Response) => {
     res.status(httpStatus.OK).json(result);
 };
 
+export const exportUserData = async (req: Request, res: Response) => {
+    const data = await userService.exportUserData(req.user!.id);
+    
+    // Set headers to trigger file download in browser
+    res.setHeader("Content-Disposition", 'attachment; filename="user_data_export.json"');
+    res.setHeader("Content-Type", "application/json");
+    
+    res.status(httpStatus.OK).send(JSON.stringify(data, null, 2));
+};
+
 

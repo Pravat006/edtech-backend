@@ -14,6 +14,7 @@ import { ProfileSetup, Login, SetPassword, ChangePassword } from "./auth.schema"
 import envVars from "@/config/envVars";
 import jwt from "jsonwebtoken";
 import * as argon2 from "argon2";
+import { logger } from "@/config/logger";
 
 class AuthService {
     public async checkUserExists(phoneNumber: string) {
@@ -28,11 +29,11 @@ class AuthService {
         try {
             return await smsService.sendOtp(phoneNumber);
         } catch (err: any) {
-            if (err.message.includes("1 minute")) {
-                throw new APIError(httpStatus.TOO_MANY_REQUESTS, err.message);
+            if (err.message && err.message.includes("1 minute")) {
+                throw new APIError(httpStatus.TOO_MANY_REQUESTS, "Please wait before requesting another OTP.");
             }
-            console.error("SMS Sending Error:", err);
-            throw new APIError(httpStatus.INTERNAL_SERVER_ERROR, err.message || "Failed to send OTP.");
+            logger.error(`SMS Sending Error: ${err.message}`);
+            throw new APIError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to send OTP. Please try again later.");
         }
     }
 

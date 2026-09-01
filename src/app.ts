@@ -4,7 +4,6 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import modulesRouter from "./modules";
 import { convertError, errorMiddleware } from "./middleware/error.middleware";
-import { rateLimiter } from "./middleware/rateLimiter";
 import { httpLogger } from "./config/logger";
 
 const app = express();
@@ -39,7 +38,6 @@ app.use(
 );
 
 app.use(helmet());
-app.use(rateLimiter);
 
 app.get("/", (_req: express.Request, res: express.Response) => {
     res.status(200).json({

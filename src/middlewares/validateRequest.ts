@@ -6,7 +6,8 @@ import { APIError } from "@/utils/APIError";
 export const validateRequest = (schema: ZodSchema, source: "body" | "query" | "params" = "body") => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            await schema.parseAsync(req[source]);
+            const parsedData = await schema.parseAsync(req[source]);
+            req[source] = parsedData;
             next();
         } catch (error) {
             if (error instanceof ZodError) {

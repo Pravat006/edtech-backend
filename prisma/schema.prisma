@@ -67,6 +67,7 @@ model User {
   preferences       UserPreferences?
   wallet            Wallet?
   wishlistItems     Wishlist[]
+  legalConsents     UserLegalConsent[]
 
   @@index([phoneNumber])
 }
@@ -645,6 +646,7 @@ model CmsPage {
   updatedAt       DateTime          @updatedAt
   updatedBy       Admin?            @relation("CmsPageUpdatedBy", fields: [updatedById], references: [id])
   revisions       CmsPageRevision[]
+  userConsents    UserLegalConsent[]
 
   @@index([slug])
   @@index([isPublished])
@@ -660,9 +662,28 @@ model CmsPageRevision {
   createdAt   DateTime @default(now())
   createdBy   Admin?   @relation("CmsRevisionCreatedBy", fields: [createdById], references: [id])
   page        CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  consents    UserLegalConsent[]
 
   @@index([pageId])
   @@index([version])
+}
+
+model UserLegalConsent {
+  id              String          @id @default(uuid())
+  userId          String
+  pageId          String          // E.g., The CMS Page ID for "terms-and-conditions"
+  revisionId      String          // The exact version/revision they agreed to
+  ipAddress       String?
+  userAgent       String?
+  acceptedAt      DateTime        @default(now())
+  
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page            CmsPage         @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  revision        CmsPageRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pageId, revisionId])
+  @@index([userId])
+  @@index([pageId])
 }
 
 model Banner {

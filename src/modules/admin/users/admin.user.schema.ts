@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CreateDemoUserSchema = z.object({
+export const CreateDemoUserSchema = z.strictObject({
     phoneNumber: z.string().min(10, "Valid phone number required"),
     email: z.string().email("Invalid email format").optional(),
     name: z.string().min(2, "Name must be at least 2 characters").default("Demo App Reviewer"),

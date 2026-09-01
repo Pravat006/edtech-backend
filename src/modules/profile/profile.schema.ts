@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ─── Address ─────────────────────────────────────────────────────────────────
 
-export const UpdateAddressSchema = z.object({
+export const UpdateAddressSchema = z.strictObject({
     permanentAddress: z.string().trim().optional(),
     permanentAddressPincode: z
         .string()
@@ -21,7 +21,7 @@ export type UpdateAddress = z.infer<typeof UpdateAddressSchema>;
 
 // ─── Personal Details ─────────────────────────────────────────────────────────
 
-export const UpdatePersonalDetailsSchema = z.object({
+export const UpdatePersonalDetailsSchema = z.strictObject({
     dateOfBirth: z.coerce.date().optional(),
     gender: z
         .enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"])
@@ -53,7 +53,7 @@ const percentageField = z.coerce
     .max(100, "Marks cannot exceed 100")
     .optional();
 
-export const UpdateEducationDetailsSchema = z.object({
+export const UpdateEducationDetailsSchema = z.strictObject({
     collegeName: z.string().trim().optional(),
     collegeMarks: percentageField,
     collegeResultFileId: z.string().uuid("Invalid media asset ID").nullable().optional(),
@@ -68,7 +68,7 @@ export const UpdateEducationDetailsSchema = z.object({
 
 export type UpdateEducationDetails = z.infer<typeof UpdateEducationDetailsSchema>;
 
-export const ReviewDocumentVerificationSchema = z.object({
+export const ReviewDocumentVerificationSchema = z.strictObject({
     userId: z.string().uuid("Invalid user ID"),
     documentType: z.string().min(1, "Document type is required"),
     status: z.enum(["APPROVED", "REJECTED"]),

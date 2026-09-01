@@ -2,6 +2,7 @@ import { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import jwt from "jsonwebtoken";
 import { logger } from "@/config/logger";
+import envVars from "@/config/envVars";
 
 interface AuthenticatedWebSocket extends WebSocket {
     userId?: string;
@@ -52,7 +53,7 @@ export class ChatWebSocketGateway {
                     return;
                 }
 
-                const jwtSecret = process.env.JWT_SECRET || "default_jwt_secret";
+                const jwtSecret = envVars.JWT_SECRET;
                 const decoded = jwt.verify(token, jwtSecret) as { id: string; name?: string };
 
                 if (!decoded || !decoded.id) {

@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-export const AdminLoginSchema = z.object({
+export const AdminLoginSchema = z.strictObject({
     email: z.string().email("Invalid email format"),
     password: z.string().min(6, "Password must be at least 6 characters"),
 });
 export type AdminLogin = z.infer<typeof AdminLoginSchema>;
 
-export const AdminAcceptInviteSchema = z.object({
+export const AdminAcceptInviteSchema = z.strictObject({
     token: z.string().min(1, "Invitation token is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
 });
